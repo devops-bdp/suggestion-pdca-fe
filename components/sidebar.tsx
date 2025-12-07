@@ -29,10 +29,10 @@ interface MenuItem {
 
 const allMenuItems: MenuItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
-  { icon: FileText, label: "Submissions", href: "/dashboard/submissions", roles: ["Super_Admin", "Dept_Head", "Project_Manager", "Group_Leader", "Staff", "Non_Staff"] },
+  { icon: FileText, label: "Submissions", href: "/dashboard/submissions", roles: ["Super_Admin", "Dept_Head", "Group_Leader", "Staff", "Non_Staff"] },
   { icon: CheckCircle, label: "Approval", href: "/dashboard/approval", roles: ["Super_Admin", "Supervisor", "Dept_Head", "Project_Manager"] },
-  { icon: ClipboardCheck, label: "Scoring", href: "/dashboard/scoring", roles: ["Super_Admin", "Dept_Head", "Project_Manager"] },
-  { icon: Users, label: "Users", href: "/dashboard/users", roles: ["Super_Admin", "Dept_Head", "Project_Manager", "Group_Leader"] },
+  { icon: ClipboardCheck, label: "Scoring", href: "/dashboard/scoring", roles: ["Super_Admin", "Dept_Head"] },
+  { icon: Users, label: "Users", href: "/dashboard/users", roles: ["Super_Admin", "Dept_Head", "Group_Leader"] },
   { icon: Settings, label: "Settings", href: "/dashboard/settings" },
 ];
 
@@ -85,12 +85,12 @@ function SidebarContent() {
       );
     }
 
-    // Supervisor can access Dashboard, Approval, and Settings (not Submissions and Users)
-    if (userRole === Role.Supervisor) {
+    // Supervisor and Project_Manager can access Dashboard, Approval, and Settings (not Submissions, Users, or Scoring)
+    if (userRole === Role.Supervisor || userRole === Role.Project_Manager) {
       return allMenuItems.filter(item => {
         // Always show Dashboard and Settings
         if (item.href === "/dashboard" || item.href === "/dashboard/settings") return true;
-        // Show items where Supervisor is in the roles array
+        // Show items where the role is in the roles array
         if (item.roles) return item.roles.includes(userRole);
         // Hide items without roles (except Dashboard and Settings which are already handled)
         return false;

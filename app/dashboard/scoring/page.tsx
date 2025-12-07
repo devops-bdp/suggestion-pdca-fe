@@ -190,7 +190,6 @@ export default function ScoringPage() {
       const allowedRoles = [
         Role.Super_Admin,
         Role.Dept_Head,
-        Role.Project_Manager,
       ];
       if (!allowedRoles.includes(userRole as Role)) {
         router.replace("/dashboard");
@@ -357,7 +356,6 @@ export default function ScoringPage() {
   const allowedRoles = [
     Role.Super_Admin,
     Role.Dept_Head,
-    Role.Project_Manager,
   ];
 
   if (!allowedRoles.includes(userRole as Role)) {
