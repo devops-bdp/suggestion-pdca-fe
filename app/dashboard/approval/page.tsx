@@ -41,7 +41,7 @@ export default function ApprovalPage() {
     endpoint,
   });
 
-  const { data: currentUser } = useData<UserProfile>({
+  const { data: currentUser, loading: currentUserLoading } = useData<UserProfile>({
     endpoint: "/users/profile",
   });
 
@@ -133,6 +133,50 @@ export default function ApprovalPage() {
     }
   };
 
+  if (currentUserLoading) {
+    return (
+      <div className="space-y-6">
+        {/* Header Skeleton */}
+        <div className="animate-pulse">
+          <div className="h-9 bg-slate-200 dark:bg-slate-700 rounded w-48 mb-2"></div>
+          <div className="h-5 bg-slate-200 dark:bg-slate-700 rounded w-64"></div>
+        </div>
+        
+        {/* Search Card Skeleton */}
+        <Card className="p-4">
+          <div className="space-y-2 animate-pulse">
+            <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-32 mb-2"></div>
+            <div className="h-9 bg-slate-200 dark:bg-slate-700 rounded w-full"></div>
+          </div>
+        </Card>
+        
+        {/* Suggestions Skeleton */}
+        <div className="grid gap-4">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="p-6 animate-pulse">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded w-1/3"></div>
+                    <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded-full w-20"></div>
+                  </div>
+                  <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-3/4 mb-2"></div>
+                  <div className="flex items-center gap-4">
+                    <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-24"></div>
+                    <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-24"></div>
+                    <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-32"></div>
+                    <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-20"></div>
+                  </div>
+                </div>
+                <div className="h-8 w-8 bg-slate-200 dark:bg-slate-700 rounded"></div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   if (!currentUser) {
     return (
       <div className="flex items-center justify-center min-h-96">
@@ -192,13 +236,30 @@ export default function ApprovalPage() {
         </div>
       </Card>
 
-      {/* Loading State */}
+      {/* Loading State - Skeleton */}
       {loading && (
-        <Card className="p-12 flex items-center justify-center min-h-96">
-          <p className="text-slate-500 dark:text-slate-400">
-            Loading suggestions...
-          </p>
-        </Card>
+        <div className="grid gap-4">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="p-6 animate-pulse">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded w-1/3"></div>
+                    <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded-full w-20"></div>
+                  </div>
+                  <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-3/4 mb-2"></div>
+                  <div className="flex items-center gap-4">
+                    <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-24"></div>
+                    <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-24"></div>
+                    <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-32"></div>
+                    <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-20"></div>
+                  </div>
+                </div>
+                <div className="h-8 w-8 bg-slate-200 dark:bg-slate-700 rounded"></div>
+              </div>
+            </Card>
+          ))}
+        </div>
       )}
 
       {/* Error State */}

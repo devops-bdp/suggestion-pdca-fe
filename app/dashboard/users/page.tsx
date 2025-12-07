@@ -30,7 +30,7 @@ export default function UsersPage() {
     endpoint: "/users/all",
   });
 
-  const { data: currentUser } = useData<UserProfile>({
+  const { data: currentUser, loading: currentUserLoading } = useData<UserProfile>({
     endpoint: "/users/profile",
   });
 
@@ -246,10 +246,68 @@ export default function UsersPage() {
         </Button>
       </div>
 
-      {/* Loading State */}
-      {loading && (
-        <Card className="p-12 flex items-center justify-center min-h-96">
-          <p className="text-slate-500 dark:text-slate-400">Loading users...</p>
+      {/* Loading State - Skeleton */}
+      {(loading || currentUserLoading) && (
+        <Card className="overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+                <tr>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-slate-900 dark:text-slate-100">
+                    Name
+                  </th>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-slate-900 dark:text-slate-100">
+                    NRP
+                  </th>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-slate-900 dark:text-slate-100">
+                    Role
+                  </th>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-slate-900 dark:text-slate-100">
+                    Department
+                  </th>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-slate-900 dark:text-slate-100">
+                    Position
+                  </th>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-slate-900 dark:text-slate-100">
+                    Joined
+                  </th>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-slate-900 dark:text-slate-100">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td className="px-6 py-4">
+                      <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-32"></div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-24"></div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded-full w-20"></div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-24"></div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-24"></div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-20"></div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <div className="h-8 w-8 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                        <div className="h-8 w-8 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </Card>
       )}
 
@@ -267,7 +325,7 @@ export default function UsersPage() {
       )}
 
       {/* Users Table */}
-      {!loading && users && users.length > 0 && (
+      {!loading && !currentUserLoading && users && users.length > 0 && (
         <Card className="overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -352,7 +410,7 @@ export default function UsersPage() {
       )}
 
       {/* Empty State */}
-      {!loading && (!users || users.length === 0) && (
+      {!loading && !currentUserLoading && (!users || users.length === 0) && (
         <Card className="p-12 flex items-center justify-center min-h-96">
           <div className="text-center">
             <p className="text-slate-500 dark:text-slate-400 text-lg mb-4">
