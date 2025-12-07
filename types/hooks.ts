@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { apiClient } from "./api-client";
 
-interface UseDataOptions {
+export interface UseDataOptions {
   endpoint: string;
   immediate?: boolean;
 }
 
-interface UseDataReturn<T> {
+export interface UseDataReturn<T> {
   data: T | null;
   loading: boolean;
   error: Error | null;

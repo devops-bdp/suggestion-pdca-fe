@@ -9,7 +9,7 @@ const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ??
   "https://sugestion-system.vercel.app/api";
 
-const AUTH_TOKEN_KEY = "token";
+export const AUTH_TOKEN_KEY = "token";
 
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
