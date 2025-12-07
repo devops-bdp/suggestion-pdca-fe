@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { apiClient } from "@/types/api-client";
@@ -123,6 +124,16 @@ export default function LoginPage() {
         <div className="bg-white rounded-lg shadow-2xl p-8">
           {/* Header */}
           <div className="text-center mb-8">
+            {/* Logo */}
+            <div className="flex justify-center mb-6">
+              <Image 
+                src="/img/logo.png" 
+                alt="Batara Logo" 
+                width={120} 
+                height={120}
+                className="object-contain"
+              />
+            </div>
             <h1 className="text-3xl font-bold text-slate-900 mb-2">Login</h1>
             <p className="text-slate-600">Sign in to your account</p>
           </div>
