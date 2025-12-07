@@ -29,10 +29,10 @@ interface MenuItem {
 
 const allMenuItems: MenuItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
-  { icon: FileText, label: "Submissions", href: "/dashboard/submissions" },
+  { icon: FileText, label: "Submissions", href: "/dashboard/submissions", roles: ["Super_Admin", "Dept_Head", "Project_Manager", "Group_Leader", "Staff", "Non_Staff"] },
   { icon: CheckCircle, label: "Approval", href: "/dashboard/approval", roles: ["Super_Admin", "Supervisor", "Dept_Head", "Project_Manager"] },
   { icon: ClipboardCheck, label: "Scoring", href: "/dashboard/scoring", roles: ["Super_Admin", "Dept_Head", "Project_Manager"] },
-  { icon: Users, label: "Users", href: "/dashboard/users" },
+  { icon: Users, label: "Users", href: "/dashboard/users", roles: ["Super_Admin", "Dept_Head", "Project_Manager", "Group_Leader"] },
   { icon: Settings, label: "Settings", href: "/dashboard/settings" },
 ];
 
@@ -83,6 +83,18 @@ function SidebarContent() {
       return allMenuItems.filter(item => 
         item.href === "/dashboard" || item.href === "/dashboard/submissions"
       );
+    }
+
+    // Supervisor can access Dashboard, Approval, and Settings (not Submissions and Users)
+    if (userRole === Role.Supervisor) {
+      return allMenuItems.filter(item => {
+        // Always show Dashboard and Settings
+        if (item.href === "/dashboard" || item.href === "/dashboard/settings") return true;
+        // Show items where Supervisor is in the roles array
+        if (item.roles) return item.roles.includes(userRole);
+        // Hide items without roles (except Dashboard and Settings which are already handled)
+        return false;
+      });
     }
 
     // Other roles: filter based on roles array
