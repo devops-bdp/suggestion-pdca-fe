@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { apiClient, logout } from "@/types/api-client";
 import { useData } from "@/types/hooks";
-import { UserProfile, Suggestion } from "@/types/api";
+import { UserProfile, Suggestion, Role } from "@/types/api";
 import { formatEnumDisplay } from "@/types/utils";
 
 export default function Navbar() {
@@ -28,9 +28,21 @@ export default function Navbar() {
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
 
+  // Build endpoint with userId filter for Staff/Non_Staff users
+  const suggestionsEndpoint = useMemo(() => {
+    if (!user?.role || !user?.id) return "/suggestions";
+    
+    const role = user.role as string;
+    // Staff/Non_Staff can only see their own suggestions
+    if (role === Role.Staff || role === Role.Non_Staff) {
+      return `/suggestions?userId=${user.id}`;
+    }
+    return "/suggestions";
+  }, [user?.role, user?.id]);
+
   // Fetch suggestions and users for search
   const { data: suggestionsData } = useData<Suggestion[]>({
-    endpoint: "/suggestions",
+    endpoint: suggestionsEndpoint,
     immediate: searchQuery.trim().length > 0, // Only fetch when there's a search query
   });
 
@@ -39,18 +51,47 @@ export default function Navbar() {
     immediate: searchQuery.trim().length > 0 && user?.role !== "Staff" && user?.role !== "Non_Staff", // Only fetch if user has permission
   });
 
-  // Extract suggestions array
+  // Check if user can view all suggestions (Staff/Non_Staff can only see their own)
+  const canViewAllSuggestions = useMemo(() => {
+    if (!user?.role) return true; // Default to true if role not loaded yet
+    const role = user.role as string;
+    return role !== Role.Staff && role !== Role.Non_Staff;
+  }, [user?.role]);
+
+  // Extract suggestions array and filter by user role
   const suggestions = useMemo(() => {
     if (!suggestionsData) return [];
-    if (Array.isArray(suggestionsData)) return suggestionsData;
-    if (suggestionsData && typeof suggestionsData === 'object') {
+    
+    // Extract array from response
+    let suggestionsArray: Suggestion[] = [];
+    if (Array.isArray(suggestionsData)) {
+      suggestionsArray = suggestionsData;
+    } else if (suggestionsData && typeof suggestionsData === 'object') {
       const data = suggestionsData as any;
       if ('data' in data && Array.isArray(data.data)) {
-        return data.data;
+        suggestionsArray = data.data;
       }
     }
-    return [];
-  }, [suggestionsData]);
+    
+    // Filter by user role - Staff/Non_Staff can only see their own suggestions
+    if (!canViewAllSuggestions && user?.id) {
+      suggestionsArray = suggestionsArray.filter((suggestion: Suggestion) => {
+        // Only show suggestions that belong to the current user
+        const belongsToUser = suggestion.userId === user.id || suggestion.user?.id === user.id;
+        return belongsToUser;
+      });
+      
+      if (process.env.NODE_ENV === "development") {
+        console.log("[Navbar Search] Filtered suggestions for Staff/Non_Staff:", {
+          userId: user.id,
+          role: user.role,
+          filteredCount: suggestionsArray.length
+        });
+      }
+    }
+    
+    return suggestionsArray;
+  }, [suggestionsData, canViewAllSuggestions, user?.id, user?.role]);
 
   // Extract users array
   const users = useMemo(() => {
