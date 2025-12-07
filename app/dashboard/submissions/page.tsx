@@ -148,7 +148,7 @@ export default function SubmissionsPage() {
     search: "", // Search by NRP or name
   });
 
-  const { data: currentUser } = useData<UserProfile>({
+  const { data: currentUser, loading: currentUserLoading } = useData<UserProfile>({
     endpoint: "/users/profile",
   });
 
@@ -635,94 +635,127 @@ export default function SubmissionsPage() {
 
       {/* Filters */}
       <Card className="p-4">
-        <div className="space-y-4">
-                {/* Search by NRP or Name - Only show for users who can view all submissions */}
-          {canViewAllSubmissions && (
-            <div>
-              <Label htmlFor="search" className="text-sm font-medium mb-2 block">
-                Search by NRP or Name
-              </Label>
-              <Input
-                id="search"
-                type="text"
-                placeholder="Search by NRP or name..."
-                value={filters.search}
-                onChange={(e) =>
-                  setFilters({ ...filters, search: e.target.value })
-                }
-                className="w-full"
-              />
-            </div>
-          )}
-          
-          {/* Other Filters */}
-          <div className="flex items-center gap-4 flex-wrap">
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-slate-500" />
-              <span className="text-sm font-medium">Filters:</span>
-            </div>
-            <div className="flex-1 min-w-[200px]">
-              <select
-                value={filters.statusIde}
-                onChange={(e) =>
-                  setFilters({ ...filters, statusIde: e.target.value })
-                }
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <option value="">All Status</option>
-                {statusOptions.map((status) => (
-                  <option key={status} value={status}>
-                    {formatEnumDisplay(status)}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {/* Department filter - Only show for users who can view all submissions */}
+        {loading || currentUserLoading ? (
+          <div className="space-y-4 animate-pulse">
+            {/* Search skeleton - Only show if user can view all submissions */}
             {canViewAllSubmissions && (
+              <div>
+                <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-32 mb-2"></div>
+                <div className="h-9 bg-slate-200 dark:bg-slate-700 rounded w-full"></div>
+              </div>
+            )}
+            
+            {/* Filters skeleton */}
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="flex items-center gap-2">
+                <div className="h-4 w-4 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-16"></div>
+              </div>
+              <div className="flex-1 min-w-[200px]">
+                <div className="h-9 bg-slate-200 dark:bg-slate-700 rounded w-full"></div>
+              </div>
+              {/* Department filter skeleton - Only show if user can view all submissions */}
+              {canViewAllSubmissions && (
+                <div className="flex-1 min-w-[200px]">
+                  <div className="h-9 bg-slate-200 dark:bg-slate-700 rounded w-full"></div>
+                </div>
+              )}
+              <div className="flex-1 min-w-[200px]">
+                <div className="h-9 bg-slate-200 dark:bg-slate-700 rounded w-full"></div>
+              </div>
+              <div className="h-9 bg-slate-200 dark:bg-slate-700 rounded w-24"></div>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Search by NRP or Name - Only show for users who can view all submissions */}
+            {canViewAllSubmissions && (
+              <div>
+                <Label htmlFor="search" className="text-sm font-medium mb-2 block">
+                  Search by NRP or Name
+                </Label>
+                <Input
+                  id="search"
+                  type="text"
+                  placeholder="Search by NRP or name..."
+                  value={filters.search}
+                  onChange={(e) =>
+                    setFilters({ ...filters, search: e.target.value })
+                  }
+                  className="w-full"
+                />
+              </div>
+            )}
+            
+            {/* Other Filters */}
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-slate-500" />
+                <span className="text-sm font-medium">Filters:</span>
+              </div>
               <div className="flex-1 min-w-[200px]">
                 <select
-                  value={filters.department}
+                  value={filters.statusIde}
                   onChange={(e) =>
-                    setFilters({ ...filters, department: e.target.value })
+                    setFilters({ ...filters, statusIde: e.target.value })
                   }
                   className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  <option value="">All Departments</option>
-                  <option value="IT">IT</option>
-                  <option value="HRGA">HRGA</option>
-                  <option value="PLANT">Plant</option>
-                  <option value="HSE">HSE</option>
-                  <option value="TC">TC</option>
-                  <option value="PRODUKSI">Produksi</option>
-                  <option value="LOGISTIK">Logistik</option>
-                  <option value="ALL_DEPT">All Dept</option>
+                  <option value="">All Status</option>
+                  {statusOptions.map((status) => (
+                    <option key={status} value={status}>
+                      {formatEnumDisplay(status)}
+                    </option>
+                  ))}
                 </select>
               </div>
-            )}
-            <div className="flex-1 min-w-[200px]">
-              <select
-                value={filters.kriteriaSS}
-                onChange={(e) =>
-                  setFilters({ ...filters, kriteriaSS: e.target.value })
-                }
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+              {/* Department filter - Only show for users who can view all submissions */}
+              {canViewAllSubmissions && (
+                <div className="flex-1 min-w-[200px]">
+                  <select
+                    value={filters.department}
+                    onChange={(e) =>
+                      setFilters({ ...filters, department: e.target.value })
+                    }
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="">All Departments</option>
+                    <option value="IT">IT</option>
+                    <option value="HRGA">HRGA</option>
+                    <option value="PLANT">Plant</option>
+                    <option value="HSE">HSE</option>
+                    <option value="TC">TC</option>
+                    <option value="PRODUKSI">Produksi</option>
+                    <option value="LOGISTIK">Logistik</option>
+                    <option value="ALL_DEPT">All Dept</option>
+                  </select>
+                </div>
+              )}
+              <div className="flex-1 min-w-[200px]">
+                <select
+                  value={filters.kriteriaSS}
+                  onChange={(e) =>
+                    setFilters({ ...filters, kriteriaSS: e.target.value })
+                  }
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="">All Criteria</option>
+                  {kriteriaSSOptions.map((kriteria) => (
+                    <option key={kriteria} value={kriteria}>
+                      {formatEnumDisplay(kriteria)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => setFilters({ statusIde: "", department: "", kriteriaSS: "", search: "" })}
               >
-                <option value="">All Criteria</option>
-                {kriteriaSSOptions.map((kriteria) => (
-                  <option key={kriteria} value={kriteria}>
-                    {formatEnumDisplay(kriteria)}
-                  </option>
-                ))}
-              </select>
+                Clear Filters
+              </Button>
             </div>
-            <Button
-              variant="outline"
-              onClick={() => setFilters({ statusIde: "", department: "", kriteriaSS: "", search: "" })}
-            >
-              Clear Filters
-            </Button>
           </div>
-        </div>
+        )}
       </Card>
 
       {/* Loading State - Skeleton */}
