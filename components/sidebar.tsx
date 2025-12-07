@@ -29,10 +29,10 @@ interface MenuItem {
 
 const allMenuItems: MenuItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
-  { icon: FileText, label: "Submissions", href: "/dashboard/submissions", roles: ["Super_Admin", "Dept_Head", "Group_Leader", "Staff", "Non_Staff"] },
+  { icon: FileText, label: "Submissions", href: "/dashboard/submissions", roles: ["Super_Admin", "Group_Leader", "Staff", "Non_Staff"] },
   { icon: CheckCircle, label: "Approval", href: "/dashboard/approval", roles: ["Super_Admin", "Supervisor", "Dept_Head", "Project_Manager"] },
   { icon: ClipboardCheck, label: "Scoring", href: "/dashboard/scoring", roles: ["Super_Admin", "Dept_Head"] },
-  { icon: Users, label: "Users", href: "/dashboard/users", roles: ["Super_Admin", "Dept_Head", "Group_Leader"] },
+  { icon: Users, label: "Users", href: "/dashboard/users", roles: ["Super_Admin", "Group_Leader"] },
   { icon: Settings, label: "Settings", href: "/dashboard/settings" },
 ];
 
@@ -85,8 +85,8 @@ function SidebarContent() {
       );
     }
 
-    // Supervisor and Project_Manager can access Dashboard, Approval, and Settings (not Submissions, Users, or Scoring)
-    if (userRole === Role.Supervisor || userRole === Role.Project_Manager) {
+    // Supervisor, Project_Manager, and Dept_Head can access Dashboard, Approval, Scoring, and Settings (not Submissions or Users)
+    if (userRole === Role.Supervisor || userRole === Role.Project_Manager || userRole === Role.Dept_Head) {
       return allMenuItems.filter(item => {
         // Always show Dashboard and Settings
         if (item.href === "/dashboard" || item.href === "/dashboard/settings") return true;

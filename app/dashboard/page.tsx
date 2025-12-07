@@ -38,12 +38,12 @@ export default function DashboardPage() {
     immediate: false,
   })
 
-  // Only fetch users/all if user has permission (not Staff, Non_Staff, Supervisor, or Project_Manager)
+  // Only fetch users/all if user has permission (not Staff, Non_Staff, Supervisor, Project_Manager, or Dept_Head)
   const canViewAllUsers = useMemo(() => {
     if (!profile?.role) return false
     const role = profile.role as string
-    // Supervisor and Project_Manager don't have access to Users page
-    return role !== Role.Staff && role !== Role.Non_Staff && role !== Role.Supervisor && role !== Role.Project_Manager
+    // Supervisor, Project_Manager, and Dept_Head don't have access to Users page
+    return role !== Role.Staff && role !== Role.Non_Staff && role !== Role.Supervisor && role !== Role.Project_Manager && role !== Role.Dept_Head
   }, [profile?.role])
 
   const { data: usersData, loading: usersLoading, error: usersError } = useData<any>({
