@@ -43,7 +43,13 @@ import {
 import { SuggestionHistory } from "@/types/api";
 
 // History Section Component with Pagination
-function HistorySection({ history }: { history: SuggestionHistory[] }) {
+function HistorySection({ 
+  history, 
+  currentUser 
+}: { 
+  history: SuggestionHistory[];
+  currentUser?: UserProfile | null;
+}) {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
   
@@ -81,10 +87,25 @@ function HistorySection({ history }: { history: SuggestionHistory[] }) {
       {/* History Cards */}
       <div className="space-y-2 mb-4">
         {currentHistory.map((item) => {
-          // Get user name from history item
-          const userName = item.user 
-            ? `${item.user.firstName} ${item.user.lastName}`.trim()
-            : null;
+          // Get user name from history item, with fallback to currentUser
+          let userName: string | null = null;
+          
+          if (item.user) {
+            // Use user info from history if available
+            userName = `${item.user.firstName} ${item.user.lastName}`.trim();
+          } else if (item.changedBy && currentUser && currentUser.id === item.changedBy) {
+            // Fallback: if changedBy matches current user and no user info in history
+            userName = `${currentUser.firstName} ${currentUser.lastName}`.trim();
+          } else if (currentUser) {
+            // Fallback: if no user info at all, use current user for recent items
+            // This handles cases where backend doesn't populate user info
+            // Check if the change was made recently (within last 5 minutes)
+            const changeTime = new Date(item.changedAt).getTime();
+            const isRecent = changeTime > Date.now() - 300000; // Within last 5 minutes
+            if (isRecent) {
+              userName = `${currentUser.firstName} ${currentUser.lastName}`.trim();
+            }
+          }
           
           return (
             <Card key={item.id} className="p-2.5">
@@ -1643,7 +1664,7 @@ export default function SubmissionsPage() {
 
               {/* History Section */}
               {selectedSuggestion.history && selectedSuggestion.history.length > 0 && (
-                <HistorySection history={selectedSuggestion.history} />
+                <HistorySection history={selectedSuggestion.history} currentUser={currentUser} />
               )}
             </div>
           )}
