@@ -233,6 +233,13 @@ export interface SuggestionHistory {
   suggestionId: string;
   statusIde: StatusIde | string;
   changedAt: string;
+  changedBy?: string; // User ID who made the change
+  user?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    nrp?: string;
+  }; // User information who made the change
 }
 
 export interface FormPenilaian {

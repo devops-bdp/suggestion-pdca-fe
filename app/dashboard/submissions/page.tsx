@@ -80,29 +80,41 @@ function HistorySection({ history }: { history: SuggestionHistory[] }) {
       
       {/* History Cards */}
       <div className="space-y-2 mb-4">
-        {currentHistory.map((item) => (
-          <Card key={item.id} className="p-2.5">
-            <div className="flex items-center gap-2">
-              <div className="p-1 bg-slate-100 dark:bg-slate-800 rounded shrink-0">
-                <Clock className="h-3 w-3 text-slate-600 dark:text-slate-400" />
+        {currentHistory.map((item) => {
+          // Get user name from history item
+          const userName = item.user 
+            ? `${item.user.firstName} ${item.user.lastName}`.trim()
+            : null;
+          
+          return (
+            <Card key={item.id} className="p-2.5">
+              <div className="flex items-center gap-2">
+                <div className="p-1 bg-slate-100 dark:bg-slate-800 rounded shrink-0">
+                  <Clock className="h-3 w-3 text-slate-600 dark:text-slate-400" />
+                </div>
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${getStatusColor(item.statusIde)}`}>
+                    {formatEnumDisplay(item.statusIde)}
+                  </span>
+                  {userName && (
+                    <span className="text-xs text-slate-600 dark:text-slate-300 font-medium shrink-0">
+                      by {userName}
+                    </span>
+                  )}
+                  <span className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap overflow-hidden text-ellipsis">
+                    {new Date(item.changedAt).toLocaleString('id-ID', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ${getStatusColor(item.statusIde)}`}>
-                  {formatEnumDisplay(item.statusIde)}
-                </span>
-                <span className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap overflow-hidden text-ellipsis">
-                  {new Date(item.changedAt).toLocaleString('id-ID', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </span>
-              </div>
-            </div>
-          </Card>
-        ))}
+            </Card>
+          );
+        })}
       </div>
       
       {/* Pagination */}
