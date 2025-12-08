@@ -585,7 +585,7 @@ export default function SubmissionsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Submissions</h1>
+          <h1 className="text-3xl font-bold">Suggestions</h1>
           <p className="text-slate-600 dark:text-slate-400 mt-1">
             Manage and view all suggestions
           </p>
@@ -593,7 +593,7 @@ export default function SubmissionsPage() {
         <div className="flex items-center gap-4">
           <Button onClick={handleOpenCreate} className="gap-2 cursor-pointer">
             <Plus className="h-4 w-4" />
-            New Submission
+            New Suggestion
           </Button>
         </div>
       </div>

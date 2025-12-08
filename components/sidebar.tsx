@@ -29,7 +29,7 @@ interface MenuItem {
 
 const allMenuItems: MenuItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
-  { icon: FileText, label: "Submissions", href: "/dashboard/submissions", roles: ["Super_Admin", "Group_Leader", "Staff", "Non_Staff"] },
+  { icon: FileText, label: "Suggestions", href: "/dashboard/submissions", roles: ["Super_Admin", "Group_Leader", "Staff", "Non_Staff"] },
   { icon: CheckCircle, label: "Approval", href: "/dashboard/approval", roles: ["Super_Admin", "Supervisor", "Dept_Head", "Project_Manager"] },
   { icon: ClipboardCheck, label: "Scoring", href: "/dashboard/scoring", roles: ["Super_Admin", "Dept_Head", "Project_Manager"] },
   { icon: Users, label: "Users", href: "/dashboard/users", roles: ["Super_Admin", "Group_Leader"] },
@@ -78,14 +78,14 @@ function SidebarContent() {
 
     const userRole = user.role as string;
     
-    // Staff and Non_Staff can only access Dashboard and Submissions
+    // Staff and Non_Staff can only access Dashboard and Suggestions
     if (userRole === Role.Staff || userRole === Role.Non_Staff) {
       return allMenuItems.filter(item => 
         item.href === "/dashboard" || item.href === "/dashboard/submissions"
       );
     }
 
-    // Supervisor can access Dashboard, Approval, and Settings (not Submissions, Users, or Scoring)
+    // Supervisor can access Dashboard, Approval, and Settings (not Suggestions, Users, or Scoring)
     if (userRole === Role.Supervisor) {
       return allMenuItems.filter(item => {
         // Always show Dashboard and Settings
@@ -97,7 +97,7 @@ function SidebarContent() {
       });
     }
 
-    // Project_Manager and Dept_Head can access Dashboard, Approval, Scoring, and Settings (not Submissions or Users)
+    // Project_Manager and Dept_Head can access Dashboard, Approval, Scoring, and Settings (not Suggestions or Users)
     if (userRole === Role.Project_Manager || userRole === Role.Dept_Head) {
       return allMenuItems.filter(item => {
         // Always show Dashboard and Settings
