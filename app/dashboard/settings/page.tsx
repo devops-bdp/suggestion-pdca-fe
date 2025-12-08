@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { useData, useMutation } from '@/types/hooks'
 import { UserProfile, Role } from '@/types/api'
 import { Eye, EyeOff } from 'lucide-react'
+import { showError, showSuccess } from '@/lib/toast'
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -24,8 +25,6 @@ export default function SettingsPage() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [formError, setFormError] = useState('')
-  const [formSuccess, setFormSuccess] = useState('')
 
   const { mutate: updatePassword, loading: updatingPassword } = useMutation<any, any>("put")
 
@@ -45,34 +44,29 @@ export default function SettingsPage() {
       ...prev,
       [name]: value
     }))
-    // Clear errors when user starts typing
-    if (formError) setFormError('')
-    if (formSuccess) setFormSuccess('')
   }
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setFormError('')
-    setFormSuccess('')
 
     // Validation
     if (!passwordData.newPassword.trim()) {
-      setFormError('New password is required')
+      showError('New password is required')
       return
     }
 
     if (passwordData.newPassword.length < 6) {
-      setFormError('New password must be at least 6 characters long')
+      showError('New password must be at least 6 characters long')
       return
     }
 
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      setFormError('New password and confirm password do not match')
+      showError('New password and confirm password do not match')
       return
     }
 
     if (!currentUser?.id) {
-      setFormError('User information not available')
+      showError('User information not available')
       return
     }
 
@@ -112,10 +106,7 @@ export default function SettingsPage() {
         newPassword: '',
         confirmPassword: '',
       })
-      setFormSuccess('Password updated successfully!')
-      
-      // Clear success message after 5 seconds
-      setTimeout(() => setFormSuccess(''), 5000)
+      showSuccess('Password updated successfully!')
     } catch (err: any) {
       console.error('Password update error details:', {
         error: err,
@@ -138,15 +129,15 @@ export default function SettingsPage() {
       
       // Provide more helpful error messages based on status code
       if (err?.response?.status === 401 || errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
-        setFormError('Current password is incorrect or authentication failed. Please verify and try again.')
+        showError('Current password is incorrect or authentication failed. Please verify and try again.')
       } else if (err?.response?.status === 400 || errorMessage.includes('400') || errorMessage.includes('Bad Request')) {
-        setFormError('Invalid password format or missing required fields. Please check your input and try again.')
+        showError('Invalid password format or missing required fields. Please check your input and try again.')
       } else if (err?.response?.status === 404 || errorMessage.includes('404')) {
-        setFormError('User not found. Please refresh the page and try again.')
+        showError('User not found. Please refresh the page and try again.')
       } else if (err?.response?.status === 403 || errorMessage.includes('403') || errorMessage.includes('Forbidden')) {
-        setFormError('You do not have permission to change the password.')
+        showError('You do not have permission to change the password.')
       } else {
-        setFormError(errorMessage || 'Failed to update password. Please check the console for details and try again.')
+        showError(errorMessage || 'Failed to update password. Please check the console for details and try again.')
       }
     }
   }
@@ -283,24 +274,6 @@ export default function SettingsPage() {
                 </Button>
               </div>
             </div>
-
-            {/* Error Message */}
-            {formError && (
-              <div className="p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg">
-                <p className="text-red-700 dark:text-red-400 text-sm">
-                  {formError}
-                </p>
-              </div>
-            )}
-
-            {/* Success Message */}
-            {formSuccess && (
-              <div className="p-3 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg">
-                <p className="text-green-700 dark:text-green-400 text-sm">
-                  {formSuccess}
-                </p>
-              </div>
-            )}
 
             {/* Submit Button */}
             <div className="flex justify-end">

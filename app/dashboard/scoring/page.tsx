@@ -25,6 +25,7 @@ import { formatEnumDisplay } from "@/types/utils";
 import { ClipboardCheck, Search, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { SuggestionHistory } from "@/types/api";
+import { showError, showSuccess } from "@/lib/toast";
 
 // Kriteria Penilaian dengan deskripsi
 interface KriteriaPenilaian {
@@ -332,7 +333,6 @@ export default function ScoringPage() {
   const [penilaianData, setPenilaianData] = useState<{
     [key: number]: number;
   }>({});
-  const [formError, setFormError] = useState("");
 
   const handleOpenView = (suggestion: Suggestion) => {
     setSelectedSuggestion(suggestion);
@@ -369,11 +369,10 @@ export default function ScoringPage() {
 
   const handlePenilaianSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormError("");
 
     const totalScore = calculateTotalScore();
     if (totalScore === 0) {
-      setFormError("Please fill at least one criteria score");
+      showError("Please fill at least one criteria score");
       return;
     }
 
@@ -395,13 +394,14 @@ export default function ScoringPage() {
       });
 
       await Promise.all(promises);
+      showSuccess("Penilaian submitted successfully!");
       setIsPenilaianDialogOpen(false);
       setSelectedSuggestion(null);
       setPenilaianData({});
       refetch();
       setTimeout(() => refetch(), 1000);
     } catch (err) {
-      setFormError(
+      showError(
         err instanceof Error ? err.message : "Failed to submit penilaian"
       );
     }
@@ -706,13 +706,6 @@ export default function ScoringPage() {
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handlePenilaianSubmit}>
-            {formError && (
-              <div className="mb-4 p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg">
-                <p className="text-red-700 dark:text-red-400 text-sm">
-                  {formError}
-                </p>
-              </div>
-            )}
             <div className="space-y-6 py-4">
               {/* Klasifikasi Penilaian */}
               <div className="grid grid-cols-2 gap-4">

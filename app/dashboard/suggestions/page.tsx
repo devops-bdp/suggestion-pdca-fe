@@ -40,6 +40,7 @@ import {
   Clock,
 } from "lucide-react";
 import { SuggestionHistory } from "@/types/api";
+import { showError, showSuccess, showWarning } from "@/lib/toast";
 
 // History Section Component with Pagination
 function HistorySection({ 
@@ -358,7 +359,6 @@ export default function SubmissionsPage() {
       komentarPenilaian: "",
     });
 
-  const [formError, setFormError] = useState("");
 
   // Reset form
   const resetForm = () => {
@@ -380,7 +380,6 @@ export default function SubmissionsPage() {
       hubungan: "",
       tanggalEfektif: "",
     });
-    setFormError("");
   };
 
   // Set current user ID when available
@@ -412,7 +411,6 @@ export default function SubmissionsPage() {
       sifatPerbaikan: suggestion.sifatPerbaikan,
       userId: suggestion.userId,
     });
-    setFormError("");
     setIsEditDialogOpen(true);
   };
 
@@ -464,21 +462,21 @@ export default function SubmissionsPage() {
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormError("");
 
     if (!formData.userId) {
-      setFormError("User ID is required");
+      showError("User ID is required");
       return;
     }
 
     try {
       await createSuggestion("/suggestions", formData);
+      showSuccess("Suggestion created successfully!");
       setIsCreateDialogOpen(false);
       resetForm();
       refetch();
       setTimeout(() => refetch(), 1000);
     } catch (err) {
-      setFormError(
+      showError(
         err instanceof Error ? err.message : "Failed to create suggestion"
       );
     }
@@ -486,18 +484,18 @@ export default function SubmissionsPage() {
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormError("");
 
     if (!selectedSuggestion) return;
 
     try {
       await updateSuggestion(`/suggestions/${selectedSuggestion.id}`, formData);
+      showSuccess("Suggestion updated successfully!");
       setIsEditDialogOpen(false);
       setSelectedSuggestion(null);
       refetch();
       setTimeout(() => refetch(), 1000);
     } catch (err) {
-      setFormError(
+      showError(
         err instanceof Error ? err.message : "Failed to update suggestion"
       );
     }
@@ -505,7 +503,6 @@ export default function SubmissionsPage() {
 
   const handleStatusSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormError("");
 
     if (!selectedSuggestion) return;
 
@@ -514,12 +511,13 @@ export default function SubmissionsPage() {
         `/suggestions/${selectedSuggestion.id}/status`,
         statusFormData
       );
+      showSuccess("Status updated successfully!");
       setIsStatusDialogOpen(false);
       setSelectedSuggestion(null);
       refetch();
       setTimeout(() => refetch(), 1000);
     } catch (err) {
-      setFormError(
+      showError(
         err instanceof Error ? err.message : "Failed to update status"
       );
     }
@@ -527,21 +525,21 @@ export default function SubmissionsPage() {
 
   const handlePenilaianSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormError("");
 
     if (!penilaianFormData.penilaianKriteria || penilaianFormData.skorKriteria === 0) {
-      setFormError("Penilaian kriteria and skor kriteria are required");
+      showError("Penilaian kriteria and skor kriteria are required");
       return;
     }
 
     try {
       await submitPenilaian("/suggestions/penilaian", penilaianFormData);
+      showSuccess("Penilaian submitted successfully!");
       setIsPenilaianDialogOpen(false);
       setSelectedSuggestion(null);
       refetch();
       setTimeout(() => refetch(), 1000);
     } catch (err) {
-      setFormError(
+      showError(
         err instanceof Error ? err.message : "Failed to submit penilaian"
       );
     }
@@ -558,10 +556,11 @@ export default function SubmissionsPage() {
 
     try {
       await deleteSuggestion(`/suggestions/${suggestion.id}`);
+      showSuccess(`Suggestion "${suggestion.judulIde}" deleted successfully!`);
       refetch();
       setTimeout(() => refetch(), 1000);
     } catch (err) {
-      alert(
+      showError(
         err instanceof Error ? err.message : "Failed to delete suggestion"
       );
     }
@@ -954,13 +953,6 @@ export default function SubmissionsPage() {
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCreateSubmit} className="space-y-6 md:space-y-8">
-            {formError && (
-              <div className="mb-4 p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg">
-                <p className="text-red-700 dark:text-red-400 text-sm">
-                  {formError}
-                </p>
-              </div>
-            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
               {/* Left Column */}
               <div className="space-y-4 md:space-y-6">
@@ -1355,13 +1347,6 @@ export default function SubmissionsPage() {
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleEditSubmit}>
-            {formError && (
-              <div className="mb-4 p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg">
-                <p className="text-red-700 dark:text-red-400 text-sm">
-                  {formError}
-                </p>
-              </div>
-            )}
             <div className="grid gap-4 py-4">
               {/* Same form fields as create */}
               <div className="space-y-2">
@@ -1686,13 +1671,6 @@ export default function SubmissionsPage() {
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleStatusSubmit}>
-            {formError && (
-              <div className="mb-4 p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg">
-                <p className="text-red-700 dark:text-red-400 text-sm">
-                  {formError}
-                </p>
-              </div>
-            )}
             <div className="grid gap-4 py-4">
               <div className="space-y-2">
                 <Label htmlFor="statusIde">Status *</Label>
@@ -1759,13 +1737,6 @@ export default function SubmissionsPage() {
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handlePenilaianSubmit}>
-            {formError && (
-              <div className="mb-4 p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg">
-                <p className="text-red-700 dark:text-red-400 text-sm">
-                  {formError}
-                </p>
-              </div>
-            )}
             <div className="grid gap-4 py-4">
               <div className="space-y-2">
                 <Label htmlFor="penilaianKriteria">Penilaian Kriteria *</Label>

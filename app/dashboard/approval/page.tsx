@@ -25,6 +25,7 @@ import { formatEnumDisplay } from "@/types/utils";
 import { CheckCircle, XCircle, Search, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { SuggestionHistory } from "@/types/api";
+import { showError, showSuccess } from "@/lib/toast";
 
 // History Section Component with Pagination
 function HistorySection({ 
@@ -201,7 +202,6 @@ export default function ApprovalPage() {
     statusIde: "",
     komentarAtasan: "",
   });
-  const [formError, setFormError] = useState("");
 
   const handleOpenView = (suggestion: Suggestion) => {
     setSelectedSuggestion(suggestion);
@@ -219,7 +219,6 @@ export default function ApprovalPage() {
 
   const handleStatusSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormError("");
 
     if (!selectedSuggestion) return;
 
@@ -228,12 +227,13 @@ export default function ApprovalPage() {
         `/suggestions/${selectedSuggestion.id}/status`,
         statusFormData
       );
+      showSuccess("Status updated successfully!");
       setIsStatusDialogOpen(false);
       setSelectedSuggestion(null);
       refetch();
       setTimeout(() => refetch(), 1000);
     } catch (err) {
-      setFormError(
+      showError(
         err instanceof Error ? err.message : "Failed to update status"
       );
     }
@@ -495,13 +495,6 @@ export default function ApprovalPage() {
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleStatusSubmit}>
-            {formError && (
-              <div className="mb-4 p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg">
-                <p className="text-red-700 dark:text-red-400 text-sm">
-                  {formError}
-                </p>
-              </div>
-            )}
             <div className="grid gap-4 py-4">
               <div className="space-y-2">
                 <Label htmlFor="statusIde">Status *</Label>

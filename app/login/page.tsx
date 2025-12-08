@@ -5,8 +5,10 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
+import { ToastContainer } from "react-toastify";
 import { apiClient } from "@/types/api-client";
 import { LoginPayload, LoginResponse } from "@/types/api";
+import { showError, showSuccess } from "@/lib/toast";
 
 const AUTH_TOKEN_KEY = "token";
 
@@ -42,7 +44,7 @@ export default function LoginPage() {
 
     // Validate inputs
     if (!nrp.trim() || !password.trim()) {
-      setError("NRP and password are required.");
+      showError("NRP and password are required.");
       setIsLoading(false);
       return;
     }
@@ -96,7 +98,10 @@ export default function LoginPage() {
 
       console.log("Login response received:", result);
       persistToken(result);
-      router.replace("/dashboard");
+      showSuccess("Login successful! Redirecting...");
+      setTimeout(() => {
+        router.replace("/dashboard");
+      }, 500);
     } catch (err) {
       console.error("Login error:", err);
       let message = "Invalid NRP or password.";
@@ -112,7 +117,7 @@ export default function LoginPage() {
         }
       }
       
-      setError(message);
+      showError(message);
     } finally {
       setIsLoading(false);
     }
@@ -137,13 +142,6 @@ export default function LoginPage() {
             <h1 className="text-3xl font-bold text-slate-900 mb-2">Login</h1>
             <p className="text-slate-600">Sign in to your account</p>
           </div>
-
-          {/* Error Message */}
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-700 text-sm font-medium">{error}</p>
-            </div>
-          )}
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5">

@@ -18,6 +18,7 @@ import { useData, useMutation } from "@/types/hooks";
 import { User, UserFormData, Role, Department, Position, PermissionLevel, UserProfile } from "@/types/api";
 import { formatEnumDisplay } from "@/types/utils";
 import { Plus, Pencil, Trash2, Filter, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { showError, showSuccess, showWarning } from "@/lib/toast";
 
 export default function UsersPage() {
   const router = useRouter();
@@ -127,8 +128,6 @@ export default function UsersPage() {
     position: "",
     permissionLevel: "",
   });
-  const [formError, setFormError] = useState("");
-
   const resetForm = () => {
     setFormData({
       firstName: "",
@@ -141,7 +140,6 @@ export default function UsersPage() {
       permissionLevel: "",
     });
     setEditingUser(null);
-    setFormError("");
   };
 
   const handleOpenCreate = () => {
@@ -161,7 +159,6 @@ export default function UsersPage() {
       position: user.position || "",
       permissionLevel: user.permissionLevel || "",
     });
-    setFormError("");
     setIsDialogOpen(true);
   };
 
@@ -172,7 +169,6 @@ export default function UsersPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormError("");
 
     try {
       if (editingUser) {
@@ -200,11 +196,12 @@ export default function UsersPage() {
 
         console.log("Updating user:", editingUser.id, payload);
         await updateUser(`/users/${editingUser.id}`, payload);
+        showSuccess(`User ${formData.firstName} ${formData.lastName} updated successfully!`);
       } else {
         // Create user - use /auth/register endpoint
         // Required fields: firstName, lastName, nrp, password, role, department, position
         if (!formData.password || !formData.password.trim()) {
-          setFormError("Password is required for new users.");
+          showError("Password is required for new users.");
           return;
         }
 
@@ -229,6 +226,7 @@ export default function UsersPage() {
 
         console.log("Creating user via /auth/register:", payload);
         await createUser("/auth/register", payload);
+        showSuccess(`User ${formData.firstName} ${formData.lastName} created successfully!`);
       }
       
       console.log("User operation successful");
@@ -242,7 +240,7 @@ export default function UsersPage() {
     } catch (err) {
       console.error("User operation error:", err);
       const message = err instanceof Error ? err.message : "Failed to save user";
-      setFormError(message);
+      showError(message);
     }
   };
 
@@ -255,6 +253,7 @@ export default function UsersPage() {
       console.log("Deleting user:", user.id);
       await deleteUser(`/users/${user.id}`);
       console.log("User deleted successfully");
+      showSuccess(`User ${user.firstName} ${user.lastName} deleted successfully!`);
       
       // Refetch immediately and also after a delay to ensure data is updated
       refetch();
@@ -263,7 +262,7 @@ export default function UsersPage() {
       }, 1000);
     } catch (err) {
       console.error("Delete error:", err);
-      alert(err instanceof Error ? err.message : "Failed to delete user");
+      showError(err instanceof Error ? err.message : "Failed to delete user");
     }
   };
 
@@ -642,11 +641,6 @@ export default function UsersPage() {
           </DialogHeader>
 
           <form onSubmit={handleSubmit}>
-            {formError && (
-              <div className="mb-4 p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg">
-                <p className="text-red-700 dark:text-red-400 text-sm">{formError}</p>
-              </div>
-            )}
 
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-2 gap-4">
