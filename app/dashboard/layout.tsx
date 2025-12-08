@@ -57,17 +57,16 @@ export default function DashboardLayout({
         </main>
       </div>
       <ToastContainer
-        position="top-right"
+        position="bottom-right"
         autoClose={3000}
         hideProgressBar={false}
-        newestOnTop={false}
+        newestOnTop={true}
         closeOnClick
         rtl={false}
         pauseOnFocusLoss
         draggable
         pauseOnHover
-        theme="light"
-        className="dark:!bg-slate-800"
+        theme="colored"
       />
     </div>
   );
