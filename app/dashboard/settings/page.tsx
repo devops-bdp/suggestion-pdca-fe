@@ -77,17 +77,34 @@ export default function SettingsPage() {
     }
 
     try {
-      // Update password using the user update endpoint
+      // Prepare payload - use the structure that matches the backend API
+      // Based on the users page, it seems the API accepts password in the user update endpoint
       const payload: any = {
-        password: passwordData.newPassword
+        password: passwordData.newPassword.trim()
       }
 
-      // If current password is provided, include it (some APIs require it)
+      // Include current password if provided (for verification)
       if (passwordData.currentPassword.trim()) {
-        payload.currentPassword = passwordData.currentPassword
+        payload.currentPassword = passwordData.currentPassword.trim()
       }
 
-      await updatePassword(`/users/${currentUser.id}`, payload)
+      console.log('Attempting password update:', {
+        endpoint: `/users/${currentUser.id}`,
+        userId: currentUser.id,
+        hasCurrentPassword: !!passwordData.currentPassword.trim(),
+        payloadStructure: Object.keys(payload)
+      })
+
+      // Update password via user endpoint with PUT method
+      const result = await updatePassword(`/users/${currentUser.id}`, payload)
+      
+      console.log('Password update response:', result)
+      
+      // Verify the update was successful
+      if (result === null || result === undefined) {
+        // Some APIs return null on success, which is fine
+        console.log('Password update completed (null response indicates success)')
+      }
       
       // Reset form on success
       setPasswordData({
@@ -99,10 +116,38 @@ export default function SettingsPage() {
       
       // Clear success message after 5 seconds
       setTimeout(() => setFormSuccess(''), 5000)
-    } catch (err) {
-      setFormError(
-        err instanceof Error ? err.message : 'Failed to update password'
-      )
+    } catch (err: any) {
+      console.error('Password update error details:', {
+        error: err,
+        response: err?.response,
+        status: err?.response?.status,
+        data: err?.response?.data,
+        message: err?.message
+      })
+      
+      // Extract error message from response
+      let errorMessage = 'Failed to update password'
+      
+      if (err?.response?.data?.message) {
+        errorMessage = err.response.data.message
+      } else if (err?.response?.data?.error) {
+        errorMessage = err.response.data.error
+      } else if (err?.message) {
+        errorMessage = err.message
+      }
+      
+      // Provide more helpful error messages based on status code
+      if (err?.response?.status === 401 || errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
+        setFormError('Current password is incorrect or authentication failed. Please verify and try again.')
+      } else if (err?.response?.status === 400 || errorMessage.includes('400') || errorMessage.includes('Bad Request')) {
+        setFormError('Invalid password format or missing required fields. Please check your input and try again.')
+      } else if (err?.response?.status === 404 || errorMessage.includes('404')) {
+        setFormError('User not found. Please refresh the page and try again.')
+      } else if (err?.response?.status === 403 || errorMessage.includes('403') || errorMessage.includes('Forbidden')) {
+        setFormError('You do not have permission to change the password.')
+      } else {
+        setFormError(errorMessage || 'Failed to update password. Please check the console for details and try again.')
+      }
     }
   }
 
