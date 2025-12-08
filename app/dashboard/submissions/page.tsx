@@ -34,7 +34,6 @@ import {
   CheckCircle,
   XCircle,
   ClipboardCheck,
-  Eye,
   Filter,
   ChevronLeft,
   ChevronRight,
@@ -150,7 +149,7 @@ function HistorySection({
               size="sm"
               onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
               disabled={currentPage === 1}
-              className="h-8 px-2 md:px-3"
+              className="h-8 px-2 md:px-3 cursor-pointer"
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -162,7 +161,7 @@ function HistorySection({
               size="sm"
               onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
               disabled={currentPage === totalPages}
-              className="h-8 px-2 md:px-3"
+              className="h-8 px-2 md:px-3 cursor-pointer"
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -592,7 +591,7 @@ export default function SubmissionsPage() {
           </p>
         </div>
         <div className="flex items-center gap-4">
-          <Button onClick={handleOpenCreate} className="gap-2">
+          <Button onClick={handleOpenCreate} className="gap-2 cursor-pointer">
             <Plus className="h-4 w-4" />
             New Submission
           </Button>
@@ -783,6 +782,7 @@ export default function SubmissionsPage() {
               <Button
                 variant="outline"
                 onClick={() => setFilters({ statusIde: "", department: "", kriteriaSS: "", search: "" })}
+                className="cursor-pointer"
               >
                 Clear Filters
               </Button>
@@ -825,7 +825,7 @@ export default function SubmissionsPage() {
       {error && (
         <Card className="p-6 bg-red-50 dark:bg-red-950">
           <p className="text-red-600 dark:text-red-400 mb-4">{error.message}</p>
-          <Button onClick={refetch} variant="destructive">
+          <Button onClick={refetch} variant="destructive" className="cursor-pointer">
             Try Again
           </Button>
         </Card>
@@ -835,7 +835,11 @@ export default function SubmissionsPage() {
       {!loading && suggestions && suggestions.length > 0 && (
         <div className="grid gap-4">
           {suggestions.map((suggestion) => (
-            <Card key={suggestion.id} className="p-4">
+            <Card 
+              key={suggestion.id} 
+              className="p-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              onClick={() => handleOpenView(suggestion)}
+            >
               <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
@@ -873,20 +877,15 @@ export default function SubmissionsPage() {
                     </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-1 md:gap-2 shrink-0 md:ml-4">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleOpenView(suggestion)}
-                    className="h-8 w-8"
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
+                <div 
+                  className="flex items-center gap-1 md:gap-2 shrink-0 md:ml-4"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => handleOpenEdit(suggestion)}
-                    className="h-8 w-8"
+                    className="h-8 w-8 cursor-pointer"
                   >
                     <Pencil className="h-4 w-4" />
                   </Button>
@@ -895,7 +894,7 @@ export default function SubmissionsPage() {
                       variant="ghost"
                       size="icon"
                       onClick={() => handleOpenStatus(suggestion)}
-                      className="h-8 w-8 text-green-600 hover:text-green-700"
+                      className="h-8 w-8 text-green-600 hover:text-green-700 cursor-pointer"
                       title="Update Status"
                     >
                       <CheckCircle className="h-4 w-4" />
@@ -906,7 +905,7 @@ export default function SubmissionsPage() {
                       variant="ghost"
                       size="icon"
                       onClick={() => handleOpenPenilaian(suggestion)}
-                      className="h-8 w-8 text-blue-600 hover:text-blue-700"
+                      className="h-8 w-8 text-blue-600 hover:text-blue-700 cursor-pointer"
                       title="Submit Penilaian"
                     >
                       <ClipboardCheck className="h-4 w-4" />
@@ -916,7 +915,7 @@ export default function SubmissionsPage() {
                     variant="ghost"
                     size="icon"
                     onClick={() => handleDelete(suggestion)}
-                    className="h-8 w-8 text-red-600 hover:text-red-700"
+                    className="h-8 w-8 text-red-600 hover:text-red-700 cursor-pointer"
                     disabled={deleting}
                   >
                     <Trash2 className="h-4 w-4" />
@@ -935,7 +934,7 @@ export default function SubmissionsPage() {
             <p className="text-slate-500 dark:text-slate-400 text-lg mb-4">
               No suggestions found
             </p>
-            <Button onClick={handleOpenCreate} className="gap-2">
+            <Button onClick={handleOpenCreate} className="gap-2 cursor-pointer">
               <Plus className="h-4 w-4" />
               Create First Suggestion
             </Button>
@@ -1334,11 +1333,11 @@ export default function SubmissionsPage() {
                 variant="outline"
                 onClick={() => setIsCreateDialogOpen(false)}
                 disabled={creating}
-                className="w-full md:w-auto"
+                className="w-full md:w-auto cursor-pointer"
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={creating} className="w-full md:w-auto">
+              <Button type="submit" disabled={creating} className="w-full md:w-auto cursor-pointer">
                 {creating ? "Submitting..." : "Submit Suggestion"}
               </Button>
             </DialogFooter>
@@ -1520,10 +1519,11 @@ export default function SubmissionsPage() {
                 variant="outline"
                 onClick={() => setIsEditDialogOpen(false)}
                 disabled={updating}
+                className="cursor-pointer"
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={updating}>
+              <Button type="submit" disabled={updating} className="cursor-pointer">
                 {updating ? "Updating..." : "Update Suggestion"}
               </Button>
             </DialogFooter>
@@ -1669,7 +1669,7 @@ export default function SubmissionsPage() {
             </div>
           )}
           <DialogFooter className="px-3 md:px-6 py-2.5 md:py-4 border-t bg-slate-50 dark:bg-slate-900 sticky bottom-0">
-            <Button variant="outline" onClick={() => setIsViewDialogOpen(false)} className="w-full md:w-auto text-sm md:text-base">
+            <Button variant="outline" onClick={() => setIsViewDialogOpen(false)} className="w-full md:w-auto text-sm md:text-base cursor-pointer">
               Close
             </Button>
           </DialogFooter>
@@ -1734,10 +1734,11 @@ export default function SubmissionsPage() {
                 variant="outline"
                 onClick={() => setIsStatusDialogOpen(false)}
                 disabled={updatingStatus}
+                className="cursor-pointer"
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={updatingStatus}>
+              <Button type="submit" disabled={updatingStatus} className="cursor-pointer">
                 {updatingStatus ? "Updating..." : "Update Status"}
               </Button>
             </DialogFooter>
@@ -1818,10 +1819,11 @@ export default function SubmissionsPage() {
                 variant="outline"
                 onClick={() => setIsPenilaianDialogOpen(false)}
                 disabled={submittingPenilaian}
+                className="cursor-pointer"
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={submittingPenilaian}>
+              <Button type="submit" disabled={submittingPenilaian} className="cursor-pointer">
                 {submittingPenilaian ? "Submitting..." : "Submit Penilaian"}
               </Button>
             </DialogFooter>
