@@ -19,7 +19,6 @@ import { User, UserFormData, Role, Department, Position, PermissionLevel, UserPr
 import { formatEnumDisplay } from "@/types/utils";
 import { Plus, Pencil, Trash2, Filter, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { showError, showSuccess, showWarning } from "@/lib/toast";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 export default function UsersPage() {
   const router = useRouter();
@@ -118,8 +117,6 @@ export default function UsersPage() {
   }, [filters.role, filters.department, filters.position, filters.search]);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [formData, setFormData] = useState<UserFormData>({
     firstName: "",
@@ -247,19 +244,16 @@ export default function UsersPage() {
     }
   };
 
-  const handleDeleteClick = (user: User) => {
-    setUserToDelete(user);
-    setIsDeleteDialogOpen(true);
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!userToDelete) return;
+  const handleDelete = async (user: User) => {
+    if (!confirm(`Are you sure you want to delete ${user.firstName} ${user.lastName}?`)) {
+      return;
+    }
 
     try {
-      console.log("Deleting user:", userToDelete.id);
-      await deleteUser(`/users/${userToDelete.id}`);
+      console.log("Deleting user:", user.id);
+      await deleteUser(`/users/${user.id}`);
       console.log("User deleted successfully");
-      showSuccess(`User ${userToDelete.firstName} ${userToDelete.lastName} deleted successfully!`);
+      showSuccess(`User ${user.firstName} ${user.lastName} deleted successfully!`);
       
       // Refetch immediately and also after a delay to ensure data is updated
       refetch();
@@ -269,8 +263,6 @@ export default function UsersPage() {
     } catch (err) {
       console.error("Delete error:", err);
       showError(err instanceof Error ? err.message : "Failed to delete user");
-    } finally {
-      setUserToDelete(null);
     }
   };
 
@@ -570,7 +562,7 @@ export default function UsersPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleDeleteClick(user)}
+                          onClick={() => handleDelete(user)}
                           className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950 cursor-pointer"
                           disabled={deleting}
                         >

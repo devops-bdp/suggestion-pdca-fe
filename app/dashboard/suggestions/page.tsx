@@ -41,7 +41,6 @@ import {
 } from "lucide-react";
 import { SuggestionHistory } from "@/types/api";
 import { showError, showSuccess, showWarning } from "@/lib/toast";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 // History Section Component with Pagination
 function HistorySection({ 
@@ -324,8 +323,6 @@ export default function SubmissionsPage() {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
   const [isPenilaianDialogOpen, setIsPenilaianDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [suggestionToDelete, setSuggestionToDelete] = useState<Suggestion | null>(null);
   const [selectedSuggestion, setSelectedSuggestion] =
     useState<Suggestion | null>(null);
 
@@ -548,25 +545,24 @@ export default function SubmissionsPage() {
     }
   };
 
-  const handleDeleteClick = (suggestion: Suggestion) => {
-    setSuggestionToDelete(suggestion);
-    setIsDeleteDialogOpen(true);
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!suggestionToDelete) return;
+  const handleDelete = async (suggestion: Suggestion) => {
+    if (
+      !confirm(
+        `Are you sure you want to delete "${suggestion.judulIde}"?`
+      )
+    ) {
+      return;
+    }
 
     try {
-      await deleteSuggestion(`/suggestions/${suggestionToDelete.id}`);
-      showSuccess(`Suggestion "${suggestionToDelete.judulIde}" deleted successfully!`);
+      await deleteSuggestion(`/suggestions/${suggestion.id}`);
+      showSuccess(`Suggestion "${suggestion.judulIde}" deleted successfully!`);
       refetch();
       setTimeout(() => refetch(), 1000);
     } catch (err) {
       showError(
         err instanceof Error ? err.message : "Failed to delete suggestion"
       );
-    } finally {
-      setSuggestionToDelete(null);
     }
   };
 
@@ -917,7 +913,7 @@ export default function SubmissionsPage() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => handleDeleteClick(suggestion)}
+                    onClick={() => handleDelete(suggestion)}
                     className="h-8 w-8 text-red-600 hover:text-red-700 cursor-pointer"
                     disabled={deleting}
                   >
@@ -1805,22 +1801,6 @@ export default function SubmissionsPage() {
           </form>
         </DialogContent>
       </Dialog>
-
-      {/* Delete Confirmation Dialog */}
-      <ConfirmDialog
-        open={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
-        title="Delete Suggestion"
-        description={
-          suggestionToDelete
-            ? `Are you sure you want to delete "${suggestionToDelete.judulIde}"? This action cannot be undone.`
-            : "Are you sure you want to delete this suggestion?"
-        }
-        confirmText="Delete"
-        cancelText="Cancel"
-        onConfirm={handleDeleteConfirm}
-        variant="destructive"
-      />
     </div>
   );
 }
