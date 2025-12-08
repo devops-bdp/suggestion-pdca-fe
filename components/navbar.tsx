@@ -160,7 +160,7 @@ export default function Navbar() {
     setSearchQuery("");
     setShowSearchResults(false);
     setIsSearchActive(false);
-    router.push("/dashboard/submissions");
+    router.push("/dashboard/suggestions");
     // You could also navigate to a specific suggestion detail page if available
   };
 

@@ -293,7 +293,7 @@ export default function UsersPage() {
           Manage and view all users
         </p>
         </div>
-        <Button onClick={handleOpenCreate} className="gap-2">
+        <Button onClick={handleOpenCreate} className="gap-2 cursor-pointer">
           <Plus className="h-4 w-4" />
           Add User
         </Button>
@@ -406,6 +406,7 @@ export default function UsersPage() {
               <Button
                 variant="outline"
                 onClick={() => setFilters({ role: "", department: "", position: "", search: "" })}
+                className="cursor-pointer"
               >
                 Clear Filters
               </Button>
@@ -555,7 +556,7 @@ export default function UsersPage() {
                           variant="ghost"
                           size="icon"
                           onClick={() => handleOpenEdit(user)}
-                          className="h-8 w-8"
+                          className="h-8 w-8 cursor-pointer"
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -563,7 +564,7 @@ export default function UsersPage() {
                           variant="ghost"
                           size="icon"
                           onClick={() => handleDelete(user)}
-                          className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+                          className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950 cursor-pointer"
                           disabled={deleting}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -589,7 +590,7 @@ export default function UsersPage() {
                   size="sm"
                   onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                   disabled={currentPage === 1}
-                  className="h-8 px-2 md:px-3"
+                  className="h-8 px-2 md:px-3 cursor-pointer"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -601,7 +602,7 @@ export default function UsersPage() {
                   size="sm"
                   onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                   disabled={currentPage === totalPages}
-                  className="h-8 px-2 md:px-3"
+                  className="h-8 px-2 md:px-3 cursor-pointer"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -618,7 +619,7 @@ export default function UsersPage() {
             <p className="text-slate-500 dark:text-slate-400 text-lg mb-4">
             No users found
           </p>
-            <Button onClick={handleOpenCreate} className="gap-2">
+            <Button onClick={handleOpenCreate} className="gap-2 cursor-pointer">
               <Plus className="h-4 w-4" />
               Add First User
             </Button>
@@ -805,10 +806,11 @@ export default function UsersPage() {
                 variant="outline"
                 onClick={handleCloseDialog}
                 disabled={creating || updating}
+                className="cursor-pointer"
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={creating || updating}>
+              <Button type="submit" disabled={creating || updating} className="cursor-pointer">
                 {creating || updating
                   ? "Saving..."
                   : editingUser

@@ -29,7 +29,7 @@ interface MenuItem {
 
 const allMenuItems: MenuItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
-  { icon: FileText, label: "Suggestions", href: "/dashboard/submissions", roles: ["Super_Admin", "Group_Leader", "Staff", "Non_Staff"] },
+  { icon: FileText, label: "Suggestions", href: "/dashboard/suggestions", roles: ["Super_Admin", "Group_Leader", "Staff", "Non_Staff"] },
   { icon: CheckCircle, label: "Approval", href: "/dashboard/approval", roles: ["Super_Admin", "Supervisor", "Dept_Head", "Project_Manager"] },
   { icon: ClipboardCheck, label: "Scoring", href: "/dashboard/scoring", roles: ["Super_Admin", "Dept_Head", "Project_Manager"] },
   { icon: Users, label: "Users", href: "/dashboard/users", roles: ["Super_Admin", "Group_Leader"] },
@@ -81,7 +81,7 @@ function SidebarContent() {
     // Staff and Non_Staff can only access Dashboard and Suggestions
     if (userRole === Role.Staff || userRole === Role.Non_Staff) {
       return allMenuItems.filter(item => 
-        item.href === "/dashboard" || item.href === "/dashboard/submissions"
+        item.href === "/dashboard" || item.href === "/dashboard/suggestions"
       );
     }
 
