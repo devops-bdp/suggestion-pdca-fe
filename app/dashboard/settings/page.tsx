@@ -70,10 +70,15 @@ export default function SettingsPage() {
     }
 
     try {
-      // Prepare payload - use the structure that matches the backend API
-      // Based on the users page, it seems the API accepts password in the user update endpoint
+      // Prepare payload with required user fields to avoid overwriting other data on PUT
       const payload: any = {
-        password: passwordData.newPassword.trim()
+        password: passwordData.newPassword.trim(),
+        firstName: (currentUser as any)?.firstName ?? (currentUser as any)?.name ?? "",
+        lastName: (currentUser as any)?.lastName ?? "",
+        nrp: (currentUser as any)?.nrp ?? "",
+        role: (currentUser as any)?.role ?? "",
+        department: (currentUser as any)?.department ?? (currentUser as any)?.departement ?? "",
+        position: (currentUser as any)?.position ?? (currentUser as any)?.posision ?? "",
       }
 
       // Include current password if provided (for verification)
