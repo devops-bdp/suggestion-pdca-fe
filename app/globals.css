@@ -123,4 +123,21 @@
   [data-slot="card"] {
     border: none !important;
   }
+  /* Remove outline from buttons */
+  button,
+  [data-slot="button"],
+  [role="button"] {
+    outline: none !important;
+  }
+  button:focus,
+  button:focus-visible,
+  [data-slot="button"]:focus,
+  [data-slot="button"]:focus-visible,
+  [role="button"]:focus,
+  [role="button"]:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+    --tw-ring-width: 0 !important;
+    --tw-ring-offset-width: 0 !important;
+  }
 }
