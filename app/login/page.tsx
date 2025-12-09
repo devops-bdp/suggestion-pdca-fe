@@ -5,10 +5,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
-import { ToastContainer } from "react-toastify";
 import { apiClient } from "@/types/api-client";
 import { LoginPayload, LoginResponse } from "@/types/api";
-import { showError, showSuccess } from "@/lib/toast";
 
 const AUTH_TOKEN_KEY = "token";
 
@@ -44,7 +42,7 @@ export default function LoginPage() {
 
     // Validate inputs
     if (!nrp.trim() || !password.trim()) {
-      showError("NRP and password are required.");
+      setError("NRP and password are required.");
       setIsLoading(false);
       return;
     }
@@ -98,9 +96,8 @@ export default function LoginPage() {
 
       console.log("Login response received:", result);
       persistToken(result);
-      showSuccess("Login successful! Redirecting...");
       setTimeout(() => {
-        router.replace("/dashboard");
+      router.replace("/dashboard");
       }, 500);
     } catch (err) {
       console.error("Login error:", err);
@@ -117,7 +114,7 @@ export default function LoginPage() {
         }
       }
       
-      showError(message);
+      setError(message);
     } finally {
       setIsLoading(false);
     }
@@ -216,18 +213,6 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
-      <ToastContainer
-        position="bottom-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={true}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="colored"
-      />
     </div>
   )
 }

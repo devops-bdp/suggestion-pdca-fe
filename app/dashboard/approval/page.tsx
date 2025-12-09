@@ -25,7 +25,6 @@ import { formatEnumDisplay } from "@/types/utils";
 import { CheckCircle, XCircle, Search, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { SuggestionHistory } from "@/types/api";
-import { showError, showSuccess } from "@/lib/toast";
 
 // History Section Component with Pagination
 function HistorySection({ 
@@ -227,13 +226,13 @@ export default function ApprovalPage() {
         `/suggestions/${selectedSuggestion.id}/status`,
         statusFormData
       );
-      showSuccess("Status updated successfully!");
+      alert("Status updated successfully!");
       setIsStatusDialogOpen(false);
       setSelectedSuggestion(null);
       refetch();
       setTimeout(() => refetch(), 1000);
     } catch (err) {
-      showError(
+      alert(
         err instanceof Error ? err.message : "Failed to update status"
       );
     }

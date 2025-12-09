@@ -25,7 +25,6 @@ import { formatEnumDisplay } from "@/types/utils";
 import { ClipboardCheck, Search, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { SuggestionHistory } from "@/types/api";
-import { showError, showSuccess } from "@/lib/toast";
 
 // Kriteria Penilaian dengan deskripsi
 interface KriteriaPenilaian {
@@ -372,7 +371,7 @@ export default function ScoringPage() {
 
     const totalScore = calculateTotalScore();
     if (totalScore === 0) {
-      showError("Please fill at least one criteria score");
+      alert("Please fill at least one criteria score");
       return;
     }
 
@@ -394,14 +393,14 @@ export default function ScoringPage() {
       });
 
       await Promise.all(promises);
-      showSuccess("Penilaian submitted successfully!");
+      alert("Penilaian submitted successfully!");
       setIsPenilaianDialogOpen(false);
       setSelectedSuggestion(null);
       setPenilaianData({});
       refetch();
       setTimeout(() => refetch(), 1000);
     } catch (err) {
-      showError(
+      alert(
         err instanceof Error ? err.message : "Failed to submit penilaian"
       );
     }
@@ -560,7 +559,7 @@ export default function ScoringPage() {
                 </div>
                 <div className="h-8 w-8 bg-slate-200 dark:bg-slate-700 rounded"></div>
               </div>
-            </Card>
+        </Card>
           ))}
         </div>
       )}

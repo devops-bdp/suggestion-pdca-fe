@@ -40,7 +40,6 @@ import {
   Clock,
 } from "lucide-react";
 import { SuggestionHistory } from "@/types/api";
-import { showError, showSuccess, showWarning } from "@/lib/toast";
 
 // History Section Component with Pagination
 function HistorySection({ 
@@ -464,19 +463,19 @@ export default function SubmissionsPage() {
     e.preventDefault();
 
     if (!formData.userId) {
-      showError("User ID is required");
+      alert("User ID is required");
       return;
     }
 
     try {
       await createSuggestion("/suggestions", formData);
-      showSuccess("Suggestion created successfully!");
+      alert("Suggestion created successfully!");
       setIsCreateDialogOpen(false);
       resetForm();
       refetch();
       setTimeout(() => refetch(), 1000);
     } catch (err) {
-      showError(
+      alert(
         err instanceof Error ? err.message : "Failed to create suggestion"
       );
     }
@@ -489,13 +488,13 @@ export default function SubmissionsPage() {
 
     try {
       await updateSuggestion(`/suggestions/${selectedSuggestion.id}`, formData);
-      showSuccess("Suggestion updated successfully!");
+      alert("Suggestion updated successfully!");
       setIsEditDialogOpen(false);
       setSelectedSuggestion(null);
       refetch();
       setTimeout(() => refetch(), 1000);
     } catch (err) {
-      showError(
+      alert(
         err instanceof Error ? err.message : "Failed to update suggestion"
       );
     }
@@ -511,13 +510,13 @@ export default function SubmissionsPage() {
         `/suggestions/${selectedSuggestion.id}/status`,
         statusFormData
       );
-      showSuccess("Status updated successfully!");
+      alert("Status updated successfully!");
       setIsStatusDialogOpen(false);
       setSelectedSuggestion(null);
       refetch();
       setTimeout(() => refetch(), 1000);
     } catch (err) {
-      showError(
+      alert(
         err instanceof Error ? err.message : "Failed to update status"
       );
     }
@@ -527,19 +526,19 @@ export default function SubmissionsPage() {
     e.preventDefault();
 
     if (!penilaianFormData.penilaianKriteria || penilaianFormData.skorKriteria === 0) {
-      showError("Penilaian kriteria and skor kriteria are required");
+      alert("Penilaian kriteria and skor kriteria are required");
       return;
     }
 
     try {
       await submitPenilaian("/suggestions/penilaian", penilaianFormData);
-      showSuccess("Penilaian submitted successfully!");
+      alert("Penilaian submitted successfully!");
       setIsPenilaianDialogOpen(false);
       setSelectedSuggestion(null);
       refetch();
       setTimeout(() => refetch(), 1000);
     } catch (err) {
-      showError(
+      alert(
         err instanceof Error ? err.message : "Failed to submit penilaian"
       );
     }
@@ -556,11 +555,11 @@ export default function SubmissionsPage() {
 
     try {
       await deleteSuggestion(`/suggestions/${suggestion.id}`);
-      showSuccess(`Suggestion "${suggestion.judulIde}" deleted successfully!`);
+      alert(`Suggestion "${suggestion.judulIde}" deleted successfully!`);
       refetch();
       setTimeout(() => refetch(), 1000);
     } catch (err) {
-      showError(
+      alert(
         err instanceof Error ? err.message : "Failed to delete suggestion"
       );
     }
