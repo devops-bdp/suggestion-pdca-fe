@@ -25,7 +25,8 @@ export default function SettingsPage() {
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
-  const { mutate: updatePassword, loading: updatingPassword } = useMutation<any, any>("put")
+  // Use dedicated password update endpoint
+  const { mutate: changePassword, loading: updatingPassword } = useMutation<any, any>("post")
 
   // Route protection: Staff and Non_Staff cannot access
   useEffect(() => {
@@ -69,32 +70,26 @@ export default function SettingsPage() {
       return
     }
 
-    try {
-      // Prepare payload with required user fields to avoid overwriting other data on PUT
-      const payload: any = {
-        password: passwordData.newPassword.trim(),
-        firstName: (currentUser as any)?.firstName ?? (currentUser as any)?.name ?? "",
-        lastName: (currentUser as any)?.lastName ?? "",
-        nrp: (currentUser as any)?.nrp ?? "",
-        role: (currentUser as any)?.role ?? "",
-        department: (currentUser as any)?.department ?? (currentUser as any)?.departement ?? "",
-        position: (currentUser as any)?.position ?? (currentUser as any)?.posision ?? "",
-      }
+    if (!passwordData.currentPassword.trim()) {
+      alert('Current password is required to change password')
+      return
+    }
 
-      // Include current password if provided (for verification)
-      if (passwordData.currentPassword.trim()) {
-        payload.currentPassword = passwordData.currentPassword.trim()
+    try {
+      // Call dedicated password change endpoint
+      const payload: any = {
+        userId: currentUser.id,
+        currentPassword: passwordData.currentPassword.trim(),
+        newPassword: passwordData.newPassword.trim(),
       }
 
       console.log('Attempting password update:', {
-        endpoint: `/users/${currentUser.id}`,
+        endpoint: `/auth/update-password`,
         userId: currentUser.id,
-        hasCurrentPassword: !!passwordData.currentPassword.trim(),
         payloadStructure: Object.keys(payload)
       })
 
-      // Update password via user endpoint with PUT method
-      const result = await updatePassword(`/users/${currentUser.id}`, payload)
+      const result = await changePassword(`/auth/update-password`, payload)
       
       console.log('Password update response:', result)
       
