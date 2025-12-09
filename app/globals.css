@@ -119,37 +119,4 @@
   body {
     @apply bg-background text-foreground;
   }
-  /* Remove borders from cards */
-  [data-slot="card"] {
-    border: none !important;
-  }
-  /* Remove outline and ring from buttons */
-  button,
-  [data-slot="button"],
-  [role="button"],
-  [data-slot="dropdown-menu-trigger"] {
-    outline: none !important;
-  }
-  button:focus,
-  button:focus-visible,
-  [data-slot="button"]:focus,
-  [data-slot="button"]:focus-visible,
-  [role="button"]:focus,
-  [role="button"]:focus-visible,
-  [data-slot="dropdown-menu-trigger"]:focus,
-  [data-slot="dropdown-menu-trigger"]:focus-visible {
-    outline: none !important;
-    box-shadow: none !important;
-    --tw-ring-width: 0 !important;
-    --tw-ring-offset-width: 0 !important;
-    --tw-ring-color: transparent !important;
-  }
-  /* Remove ring from all button focus states - override Tailwind ring utilities */
-  button:focus-visible,
-  [data-slot="button"]:focus-visible {
-    --tw-ring-width: 0 !important;
-    --tw-ring-offset-width: 0 !important;
-    --tw-ring-color: transparent !important;
-    box-shadow: none !important;
-  }
 }
