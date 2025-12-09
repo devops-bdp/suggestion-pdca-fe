@@ -113,10 +113,37 @@
 }
 
 @layer base {
-  * {
-    @apply outline-ring/50;
-  }
   body {
     @apply bg-background text-foreground;
+  }
+  /* Remove border/outline on cards */
+  [data-slot="card"] {
+    @apply border-0;
+    box-shadow: none;
+  }
+  /* Remove outline/ring on buttons and dropdown trigger */
+  button,
+  [data-slot="button"],
+  [role="button"],
+  [data-slot="dropdown-menu-trigger"] {
+    outline: none;
+    box-shadow: none;
+    --tw-ring-width: 0;
+    --tw-ring-offset-width: 0;
+    --tw-ring-color: transparent;
+  }
+  button:focus,
+  button:focus-visible,
+  [data-slot="button"]:focus,
+  [data-slot="button"]:focus-visible,
+  [role="button"]:focus,
+  [role="button"]:focus-visible,
+  [data-slot="dropdown-menu-trigger"]:focus,
+  [data-slot="dropdown-menu-trigger"]:focus-visible {
+    outline: none;
+    box-shadow: none;
+    --tw-ring-width: 0;
+    --tw-ring-offset-width: 0;
+    --tw-ring-color: transparent;
   }
 }
