@@ -156,12 +156,12 @@
 }
 
 .Toastify__toast--success {
-  background: oklch(0.646 0.222 41.116) !important;
+  background: oklch(0.65 0.2 145) !important;
   color: oklch(0.985 0 0) !important;
 }
 
 .dark .Toastify__toast--success {
-  background: oklch(0.488 0.243 264.376) !important;
+  background: oklch(0.55 0.18 145) !important;
   color: oklch(0.985 0 0) !important;
 }
 

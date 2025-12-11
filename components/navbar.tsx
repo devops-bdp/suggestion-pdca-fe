@@ -18,6 +18,7 @@ import { apiClient, logout } from "@/types/api-client";
 import { useData } from "@/types/hooks";
 import { UserProfile, Suggestion, Role } from "@/types/api";
 import { formatEnumDisplay } from "@/types/utils";
+import { showSuccess } from "@/lib/toast";
 
 export default function Navbar() {
   const router = useRouter();
@@ -214,7 +215,10 @@ export default function Navbar() {
 
   const handleLogout = () => {
     logout();
-    router.replace("/login");
+    showSuccess("Logged out successfully!");
+    setTimeout(() => {
+      router.replace("/login");
+    }, 500);
   };
 
   // Calculate display name from firstName and lastName, similar to dashboard

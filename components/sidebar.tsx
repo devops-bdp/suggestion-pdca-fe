@@ -19,6 +19,7 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/s
 import { logout } from "@/types/api-client";
 import { apiClient } from "@/types/api-client";
 import { UserProfile, Role } from "@/types/api";
+import { showSuccess } from "@/lib/toast";
 
 interface MenuItem {
   icon: React.ComponentType<{ className?: string }>;
@@ -69,7 +70,10 @@ function SidebarContent() {
 
   const handleLogout = () => {
     logout();
-    router.replace("/login");
+    showSuccess("Logged out successfully!");
+    setTimeout(() => {
+      router.replace("/login");
+    }, 500);
   };
 
   // Filter menu items based on user role
