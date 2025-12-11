@@ -19,9 +19,11 @@ import { User, UserFormData, Role, Department, Position, PermissionLevel, UserPr
 import { formatEnumDisplay } from "@/types/utils";
 import { Plus, Pencil, Trash2, Filter, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { showSuccess, showError } from "@/lib/toast";
+import { useConfirm } from "@/lib/use-confirm";
 
 export default function UsersPage() {
   const router = useRouter();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [filters, setFilters] = useState({
     role: "",
     department: "",
@@ -245,7 +247,15 @@ export default function UsersPage() {
   };
 
   const handleDelete = async (user: User) => {
-    if (!confirm(`Are you sure you want to delete ${user.firstName} ${user.lastName}?`)) {
+    const confirmed = await confirm({
+      title: "Delete User?",
+      description: `Are you sure you want to delete ${user.firstName} ${user.lastName}? Once deleted, all associated data will be permanently lost.`,
+      confirmText: "Yes, Delete",
+      cancelText: "Cancel",
+      variant: "destructive",
+    });
+
+    if (!confirmed) {
       return;
     }
 
@@ -815,6 +825,7 @@ export default function UsersPage() {
           </form>
         </DialogContent>
       </Dialog>
+      {ConfirmDialog}
     </div>
   );
 }

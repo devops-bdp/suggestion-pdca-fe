@@ -28,6 +28,7 @@ import {
 } from "@/types/api";
 import { formatEnumDisplay } from "@/types/utils";
 import { showSuccess, showError } from "@/lib/toast";
+import { useConfirm } from "@/lib/use-confirm";
 import {
   Plus,
   Pencil,
@@ -174,6 +175,7 @@ function HistorySection({
 }
 
 export default function SubmissionsPage() {
+  const { confirm, ConfirmDialog } = useConfirm();
   const [filters, setFilters] = useState({
     statusIde: "",
     department: "",
@@ -546,11 +548,15 @@ export default function SubmissionsPage() {
   };
 
   const handleDelete = async (suggestion: Suggestion) => {
-    if (
-      !confirm(
-        `Are you sure you want to delete "${suggestion.judulIde}"?`
-      )
-    ) {
+    const confirmed = await confirm({
+      title: "Delete Suggestion?",
+      description: `Are you sure you want to delete "${suggestion.judulIde}"? Once deleted, all associated data will be permanently lost.`,
+      confirmText: "Yes, Delete",
+      cancelText: "Cancel",
+      variant: "destructive",
+    });
+
+    if (!confirmed) {
       return;
     }
 
@@ -1801,6 +1807,7 @@ export default function SubmissionsPage() {
           </form>
         </DialogContent>
       </Dialog>
+      {ConfirmDialog}
     </div>
   );
 }

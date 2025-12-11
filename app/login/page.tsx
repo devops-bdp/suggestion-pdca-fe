@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { apiClient } from "@/types/api-client";
 import { LoginPayload, LoginResponse } from "@/types/api";
+import { showSuccess, showError } from "@/lib/toast";
 
 const AUTH_TOKEN_KEY = "token";
 
@@ -96,6 +97,7 @@ export default function LoginPage() {
 
       console.log("Login response received:", result);
       persistToken(result);
+      showSuccess("Login successful! Redirecting...");
       setTimeout(() => {
       router.replace("/dashboard");
       }, 500);
@@ -115,6 +117,7 @@ export default function LoginPage() {
       }
       
       setError(message);
+      showError(message);
     } finally {
       setIsLoading(false);
     }

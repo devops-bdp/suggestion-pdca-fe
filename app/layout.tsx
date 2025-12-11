@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Outfit, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import ToastProvider from "@/components/toast-provider";
 
 const outfit = Outfit({
   variable: "--font-outfit",
@@ -29,6 +30,7 @@ export default function RootLayout({
         className={`${outfit.variable} ${geistMono.variable} antialiased bg-background text-foreground font-sans`}
       >
         {children}
+        <ToastProvider />
       </body>
     </html>
   );
