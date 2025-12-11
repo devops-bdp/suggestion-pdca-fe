@@ -27,6 +27,7 @@ import {
   Role,
 } from "@/types/api";
 import { formatEnumDisplay } from "@/types/utils";
+import { showSuccess, showError } from "@/lib/toast";
 import {
   Plus,
   Pencil,
@@ -463,19 +464,19 @@ export default function SubmissionsPage() {
     e.preventDefault();
 
     if (!formData.userId) {
-      alert("User ID is required");
+      showError("User ID is required");
       return;
     }
 
     try {
       await createSuggestion("/suggestions", formData);
-      alert("Suggestion created successfully!");
+      showSuccess("Suggestion created successfully!");
       setIsCreateDialogOpen(false);
       resetForm();
       refetch();
       setTimeout(() => refetch(), 1000);
     } catch (err) {
-      alert(
+      showError(
         err instanceof Error ? err.message : "Failed to create suggestion"
       );
     }
@@ -488,13 +489,13 @@ export default function SubmissionsPage() {
 
     try {
       await updateSuggestion(`/suggestions/${selectedSuggestion.id}`, formData);
-      alert("Suggestion updated successfully!");
+      showSuccess("Suggestion updated successfully!");
       setIsEditDialogOpen(false);
       setSelectedSuggestion(null);
       refetch();
       setTimeout(() => refetch(), 1000);
     } catch (err) {
-      alert(
+      showError(
         err instanceof Error ? err.message : "Failed to update suggestion"
       );
     }
@@ -510,13 +511,13 @@ export default function SubmissionsPage() {
         `/suggestions/${selectedSuggestion.id}/status`,
         statusFormData
       );
-      alert("Status updated successfully!");
+      showSuccess("Status updated successfully!");
       setIsStatusDialogOpen(false);
       setSelectedSuggestion(null);
       refetch();
       setTimeout(() => refetch(), 1000);
     } catch (err) {
-      alert(
+      showError(
         err instanceof Error ? err.message : "Failed to update status"
       );
     }
@@ -526,19 +527,19 @@ export default function SubmissionsPage() {
     e.preventDefault();
 
     if (!penilaianFormData.penilaianKriteria || penilaianFormData.skorKriteria === 0) {
-      alert("Penilaian kriteria and skor kriteria are required");
+      showError("Penilaian kriteria and skor kriteria are required");
       return;
     }
 
     try {
       await submitPenilaian("/suggestions/penilaian", penilaianFormData);
-      alert("Penilaian submitted successfully!");
+      showSuccess("Penilaian submitted successfully!");
       setIsPenilaianDialogOpen(false);
       setSelectedSuggestion(null);
       refetch();
       setTimeout(() => refetch(), 1000);
     } catch (err) {
-      alert(
+      showError(
         err instanceof Error ? err.message : "Failed to submit penilaian"
       );
     }
@@ -555,11 +556,11 @@ export default function SubmissionsPage() {
 
     try {
       await deleteSuggestion(`/suggestions/${suggestion.id}`);
-      alert(`Suggestion "${suggestion.judulIde}" deleted successfully!`);
+      showSuccess(`Suggestion "${suggestion.judulIde}" deleted successfully!`);
       refetch();
       setTimeout(() => refetch(), 1000);
     } catch (err) {
-      alert(
+      showError(
         err instanceof Error ? err.message : "Failed to delete suggestion"
       );
     }

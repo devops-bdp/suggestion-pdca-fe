@@ -18,6 +18,7 @@ import { useData, useMutation } from "@/types/hooks";
 import { User, UserFormData, Role, Department, Position, PermissionLevel, UserProfile } from "@/types/api";
 import { formatEnumDisplay } from "@/types/utils";
 import { Plus, Pencil, Trash2, Filter, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { showSuccess, showError } from "@/lib/toast";
 
 export default function UsersPage() {
   const router = useRouter();
@@ -195,12 +196,12 @@ export default function UsersPage() {
 
         console.log("Updating user:", editingUser.id, payload);
         await updateUser(`/users/${editingUser.id}`, payload);
-        alert(`User ${formData.firstName} ${formData.lastName} updated successfully!`);
+        showSuccess(`User ${formData.firstName} ${formData.lastName} updated successfully!`);
       } else {
         // Create user - use /auth/register endpoint
         // Required fields: firstName, lastName, nrp, password, role, department, position
         if (!formData.password || !formData.password.trim()) {
-          alert("Password is required for new users.");
+          showError("Password is required for new users.");
           return;
         }
 
@@ -225,7 +226,7 @@ export default function UsersPage() {
 
         console.log("Creating user via /auth/register:", payload);
         await createUser("/auth/register", payload);
-        alert(`User ${formData.firstName} ${formData.lastName} created successfully!`);
+        showSuccess(`User ${formData.firstName} ${formData.lastName} created successfully!`);
       }
       
       console.log("User operation successful");
@@ -239,7 +240,7 @@ export default function UsersPage() {
     } catch (err) {
       console.error("User operation error:", err);
       const message = err instanceof Error ? err.message : "Failed to save user";
-      alert(message);
+      showError(message);
     }
   };
 
@@ -252,7 +253,7 @@ export default function UsersPage() {
       console.log("Deleting user:", user.id);
       await deleteUser(`/users/${user.id}`);
       console.log("User deleted successfully");
-      alert(`User ${user.firstName} ${user.lastName} deleted successfully!`);
+      showSuccess(`User ${user.firstName} ${user.lastName} deleted successfully!`);
       
       // Refetch immediately and also after a delay to ensure data is updated
       refetch();
@@ -261,7 +262,7 @@ export default function UsersPage() {
       }, 1000);
     } catch (err) {
       console.error("Delete error:", err);
-      alert(err instanceof Error ? err.message : "Failed to delete user");
+      showError(err instanceof Error ? err.message : "Failed to delete user");
     }
   };
 

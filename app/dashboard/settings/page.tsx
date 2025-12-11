@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { useData, useMutation } from '@/types/hooks'
 import { UserProfile, Role } from '@/types/api'
 import { Eye, EyeOff } from 'lucide-react'
+import { showSuccess, showError } from '@/lib/toast'
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -51,27 +52,27 @@ export default function SettingsPage() {
 
     // Validation
     if (!passwordData.newPassword.trim()) {
-      alert('New password is required')
+      showError('New password is required')
       return
     }
 
     if (passwordData.newPassword.length < 6) {
-      alert('New password must be at least 6 characters long')
+      showError('New password must be at least 6 characters long')
       return
     }
 
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      alert('New password and confirm password do not match')
+      showError('New password and confirm password do not match')
       return
     }
 
     if (!currentUser?.id) {
-      alert('User information not available')
+      showError('User information not available')
       return
     }
 
     if (!passwordData.currentPassword.trim()) {
-      alert('Current password is required to change password')
+      showError('Current password is required to change password')
       return
     }
 
@@ -105,7 +106,7 @@ export default function SettingsPage() {
         newPassword: '',
         confirmPassword: '',
       })
-      alert('Password updated successfully!')
+      showSuccess('Password updated successfully!')
     } catch (err: any) {
       console.error('Password update error details:', {
         error: err,
@@ -128,15 +129,15 @@ export default function SettingsPage() {
       
       // Provide more helpful error messages based on status code
       if (err?.response?.status === 401 || errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
-        alert('Current password is incorrect or authentication failed. Please verify and try again.')
+        showError('Current password is incorrect or authentication failed. Please verify and try again.')
       } else if (err?.response?.status === 400 || errorMessage.includes('400') || errorMessage.includes('Bad Request')) {
-        alert('Invalid password format or missing required fields. Please check your input and try again.')
+        showError('Invalid password format or missing required fields. Please check your input and try again.')
       } else if (err?.response?.status === 404 || errorMessage.includes('404')) {
-        alert('User not found. Please refresh the page and try again.')
+        showError('User not found. Please refresh the page and try again.')
       } else if (err?.response?.status === 403 || errorMessage.includes('403') || errorMessage.includes('Forbidden')) {
-        alert('You do not have permission to change the password.')
+        showError('You do not have permission to change the password.')
       } else {
-        alert(errorMessage || 'Failed to update password. Please check the console for details and try again.')
+        showError(errorMessage || 'Failed to update password. Please check the console for details and try again.')
       }
     }
   }
