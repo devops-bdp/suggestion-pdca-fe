@@ -15,6 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useData, useMutation } from "@/types/hooks";
+import { apiClient } from "@/types/api-client";
 import {
   Suggestion,
   SuggestionFormData,
@@ -422,18 +423,27 @@ export default function SubmissionsPage() {
 
   // Handlers
   const handleOpenCreate = async () => {
-    // Refetch next registration number first to get latest global number
-    await refetchNextRegist();
     resetForm();
     setIsCreateDialogOpen(true);
-    // Auto-generate registration number when opening create dialog
-    // Use setTimeout to ensure registration number data is loaded
-    setTimeout(() => {
+    // Always refetch next registration number to get latest global number
+    // This ensures we get the most up-to-date number, even if another user just created a suggestion
+    try {
+      await refetchNextRegist();
+      // Wait a bit for the data to be processed and state updated
+      setTimeout(() => {
+        // Use generateRegistNumber which will have the latest value after refetch
+        setFormData((prev) => ({
+          ...prev,
+          noRegistSS: generateRegistNumber,
+        }));
+      }, 500);
+    } catch (error) {
+      // If refetch fails, use current generateRegistNumber
       setFormData((prev) => ({
         ...prev,
         noRegistSS: generateRegistNumber,
       }));
-    }, 200);
+    }
   };
 
   const handleOpenEdit = (suggestion: Suggestion) => {
@@ -1060,16 +1070,41 @@ export default function SubmissionsPage() {
         onOpenChange={(open) => {
           setIsCreateDialogOpen(open);
           if (open) {
-            // When dialog opens, refetch next registration number to get latest global number
-            refetchNextRegist().then(() => {
-              // Wait a bit for useMemo to recalculate with new data
-              setTimeout(() => {
-                setFormData((prev) => ({
-                  ...prev,
-                  noRegistSS: generateRegistNumber,
-                }));
-              }, 200);
-            });
+            // When dialog opens, always refetch next registration number to get latest global number
+            // This ensures we get the most up-to-date number
+            (async () => {
+              try {
+                // Get the data directly from the API
+                const result = await apiClient.get<NextRegistNumberResponse>("/suggestions/next-regist-number");
+                // Handle different response structures
+                const responseData = (result as any)?.data || result;
+                const nextRegist = responseData?.nextRegistNumber || (responseData as NextRegistNumberResponse)?.data?.nextRegistNumber;
+                if (nextRegist) {
+                  setFormData((prev) => ({
+                    ...prev,
+                    noRegistSS: nextRegist,
+                  }));
+                } else {
+                  // Fallback to generateRegistNumber if API response structure is different
+                  setTimeout(() => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      noRegistSS: generateRegistNumber,
+                    }));
+                  }, 300);
+                }
+                // Also refetch for useData hook to keep it in sync
+                await refetchNextRegist();
+              } catch (error) {
+                // If refetch fails, use current generateRegistNumber
+                setTimeout(() => {
+                  setFormData((prev) => ({
+                    ...prev,
+                    noRegistSS: generateRegistNumber,
+                  }));
+                }, 300);
+              }
+            })();
           }
         }}
       >
