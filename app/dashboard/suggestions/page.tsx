@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useDebounce } from "@/lib/use-debounce";
 import {
   Dialog,
   DialogContent,
@@ -172,6 +173,13 @@ export default function SubmissionsPage() {
     kriteriaSS: "",
     search: "", // Search by NRP or name
   });
+  // Debounce search query dengan delay 0.5 detik (500ms)
+  const debouncedSearch = useDebounce(filters.search, 500);
+  
+  // Calculate isSearching state directly (no useEffect needed)
+  const isSearching = useMemo(() => {
+    return filters.search.trim() !== debouncedSearch.trim() && filters.search.trim().length > 0;
+  }, [filters.search, debouncedSearch]);
 
   const { data: currentUser, loading: currentUserLoading } = useData<UserProfile>({
     endpoint: "/users/profile",
@@ -182,7 +190,7 @@ export default function SubmissionsPage() {
     if (!currentUser?.role) return true; // Default to true if role not loaded yet
     const role = currentUser.role as string;
     return role !== Role.Staff && role !== Role.Non_Staff;
-  }, [currentUser?.role]);
+  }, [currentUser]);
 
   // Build query string for filters
   const queryParams = useMemo(() => {
@@ -218,6 +226,7 @@ export default function SubmissionsPage() {
   });
 
   // Filter suggestions by search (NRP or name) on client side AND by user role
+  // Use debouncedSearch instead of filters.search untuk delay
   const suggestions = useMemo(() => {
     if (!suggestionsData || !Array.isArray(suggestionsData)) return suggestionsData;
     
@@ -241,12 +250,12 @@ export default function SubmissionsPage() {
       }
     }
     
-    // Then, apply search filter if search term exists
-    if (!filters.search || filters.search.trim() === "") {
+    // Then, apply search filter if debounced search term exists
+    if (!debouncedSearch || debouncedSearch.trim() === "") {
       return filteredData;
     }
 
-    const searchTerm = filters.search.toLowerCase().trim();
+    const searchTerm = debouncedSearch.toLowerCase().trim();
     return filteredData.filter((suggestion) => {
       // Search by user NRP
       if (suggestion.user?.nrp?.toLowerCase().includes(searchTerm)) {
@@ -266,7 +275,7 @@ export default function SubmissionsPage() {
       }
       return false;
     });
-  }, [suggestionsData, filters.search, canViewAllSubmissions, currentUser]);
+  }, [suggestionsData, debouncedSearch, canViewAllSubmissions, currentUser]);
 
   // Build statistics endpoint - filter by userId for Staff/Non_Staff
   const statisticsEndpoint = useMemo(() => {
@@ -820,16 +829,23 @@ export default function SubmissionsPage() {
                 <Label htmlFor="search" className="text-sm font-medium mb-2 block">
                   Search by NRP or Name
                 </Label>
-                <Input
-                  id="search"
-                  type="text"
-                  placeholder="Search by NRP or name..."
-                  value={filters.search}
-                  onChange={(e) =>
-                    setFilters({ ...filters, search: e.target.value })
-                  }
-                  className="w-full"
-                />
+                <div className="relative">
+                  <Input
+                    id="search"
+                    type="text"
+                    placeholder="Search by NRP or name..."
+                    value={filters.search}
+                    onChange={(e) =>
+                      setFilters({ ...filters, search: e.target.value })
+                    }
+                    className="w-full"
+                  />
+                  {isSearching && debouncedSearch.trim() !== filters.search.trim() && (
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                      <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 dark:border-blue-400"></div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
             
@@ -1041,8 +1057,41 @@ export default function SubmissionsPage() {
         </div>
       )}
 
-      {/* Empty State */}
-      {!loading && (!suggestions || suggestions.length === 0) && (
+      {/* Loading State for Search */}
+      {isSearching && debouncedSearch.trim() !== filters.search.trim() && (
+        <Card className="p-12 flex items-center justify-center min-h-96">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400 mb-4"></div>
+            <p className="text-slate-500 dark:text-slate-400 text-lg">
+              Searching...
+            </p>
+          </div>
+        </Card>
+      )}
+
+      {/* Empty State - No Results from Search */}
+      {!loading && !isSearching && debouncedSearch.trim() && suggestions && Array.isArray(suggestions) && suggestions.length === 0 && (
+        <Card className="p-12 flex items-center justify-center min-h-96">
+          <div className="text-center">
+            <p className="text-slate-500 dark:text-slate-400 text-lg mb-2">
+              Not Found
+            </p>
+            <p className="text-slate-400 dark:text-slate-500 text-sm mb-4">
+              No search results for &quot;{debouncedSearch}&quot;
+            </p>
+            <Button 
+              onClick={() => setFilters({ ...filters, search: "" })} 
+              variant="outline"
+              className="gap-2 cursor-pointer"
+            >
+              Clear Search
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      {/* Empty State - No Suggestions at All */}
+      {!loading && !isSearching && !debouncedSearch.trim() && (!suggestions || (Array.isArray(suggestions) && suggestions.length === 0)) && (
         <Card className="p-12 flex items-center justify-center min-h-96">
           <div className="text-center">
             <p className="text-slate-500 dark:text-slate-400 text-lg mb-4">

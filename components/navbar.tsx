@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Bell, Search, LogOut, User, X, FileText, Users } from "lucide-react";
+import { useDebounce } from "@/lib/use-debounce";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
@@ -28,6 +29,14 @@ export default function Navbar() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
+  
+  // Debounce search query dengan delay 3 detik (3000ms)
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
+  
+  // Calculate isSearching state
+  const isSearching = useMemo(() => {
+    return searchQuery.trim() !== debouncedSearchQuery.trim() && searchQuery.trim().length > 0;
+  }, [searchQuery, debouncedSearchQuery]);
 
   // Build endpoint with userId filter based on permissionLevel
   const suggestionsEndpoint = useMemo(() => {
@@ -42,10 +51,10 @@ export default function Navbar() {
     return "/suggestions";
   }, [user?.permissionLevel, user?.id]);
 
-  // Fetch suggestions and users for search
+  // Fetch suggestions and users for search - use debouncedSearchQuery
   const { data: suggestionsData } = useData<Suggestion[]>({
     endpoint: suggestionsEndpoint,
-    immediate: searchQuery.trim().length > 0, // Only fetch when there's a search query
+    immediate: debouncedSearchQuery.trim().length > 0, // Only fetch when there's a debounced search query
   });
 
   // Only fetch users if user has FULL_ACCESS permission
@@ -56,7 +65,7 @@ export default function Navbar() {
 
   const { data: usersData } = useData<any>({
     endpoint: "/users/all",
-    immediate: searchQuery.trim().length > 0 && canSearchUsers, // Only fetch if user has FULL_ACCESS
+    immediate: debouncedSearchQuery.trim().length > 0 && canSearchUsers, // Only fetch if user has FULL_ACCESS
   });
 
   // Check if user can view all suggestions (SUBMITTER can only see their own)
@@ -133,11 +142,11 @@ export default function Navbar() {
     return "Search suggestions...";
   }, [user?.permissionLevel]);
 
-  // Filter search results
+  // Filter search results - use debouncedSearchQuery
   const searchResults = useMemo(() => {
-    if (!searchQuery.trim()) return { suggestions: [], users: [] };
+    if (!debouncedSearchQuery.trim()) return { suggestions: [], users: [] };
 
-    const query = searchQuery.toLowerCase().trim();
+    const query = debouncedSearchQuery.toLowerCase().trim();
     const filteredSuggestions: Suggestion[] = [];
     const filteredUsers: any[] = [];
 
@@ -173,14 +182,28 @@ export default function Navbar() {
       suggestions: filteredSuggestions.slice(0, 5), // Limit to 5 results
       users: canSearchUsers ? filteredUsers.slice(0, 5) : [], // Only show users if user has FULL_ACCESS
     };
-  }, [searchQuery, suggestions, users, canSearchUsers]);
+  }, [debouncedSearchQuery, suggestions, users, canSearchUsers]);
 
   // Handle search input change
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchQuery(value);
-    setShowSearchResults(value.trim().length > 0);
+    // Show results only when debounced query is ready
+    if (debouncedSearchQuery.trim().length > 0 && !isSearching) {
+      setShowSearchResults(true);
+    } else {
+      setShowSearchResults(false);
+    }
   };
+  
+  // Update showSearchResults when debounced query changes
+  useEffect(() => {
+    if (debouncedSearchQuery.trim().length > 0 && !isSearching) {
+      setShowSearchResults(true);
+    } else if (!debouncedSearchQuery.trim()) {
+      setShowSearchResults(false);
+    }
+  }, [debouncedSearchQuery, isSearching]);
 
   // Handle search result click
   const handleSuggestionClick = (suggestion: Suggestion) => {
@@ -263,72 +286,96 @@ export default function Navbar() {
               placeholder={searchPlaceholder}
               value={searchQuery}
               onChange={handleSearchChange}
-              onFocus={() => setShowSearchResults(searchQuery.trim().length > 0)}
+              onFocus={() => {
+                if (debouncedSearchQuery.trim().length > 0 && !isSearching) {
+                  setShowSearchResults(true);
+                }
+              }}
               className="pl-10 bg-slate-100 dark:bg-slate-800 border-0"
             />
           </div>
-          {/* Search Results Dropdown */}
-          {showSearchResults && (searchResults.suggestions.length > 0 || searchResults.users.length > 0) && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
-              {searchResults.suggestions.length > 0 && (
-                <div className="p-2">
-                  <div className="px-2 py-1 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">
-                    Suggestions ({searchResults.suggestions.length})
-                  </div>
-                  {searchResults.suggestions.map((suggestion) => (
-                    <div
-                      key={suggestion.id}
-                      onClick={() => handleSuggestionClick(suggestion)}
-                      className="px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded cursor-pointer transition-colors"
-                    >
-                      <div className="flex items-start gap-2">
-                        <FileText className="h-4 w-4 text-slate-400 mt-0.5 shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
-                            {suggestion.judulIde}
-                          </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1">
-                            {suggestion.masalahYangDihadapi}
-                          </p>
-                          {suggestion.user && (
-                            <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
-                              By: {suggestion.user.firstName} {suggestion.user.lastName}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {searchResults.users.length > 0 && (
-                <div className="p-2 border-t border-slate-200 dark:border-slate-800">
-                  <div className="px-2 py-1 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">
-                    Users ({searchResults.users.length})
-                  </div>
-                  {searchResults.users.map((userItem) => (
-                    <div
-                      key={userItem.id}
-                      onClick={() => handleUserClick(userItem)}
-                      className="px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded cursor-pointer transition-colors"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4 text-slate-400 shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                            {userItem.firstName} {userItem.lastName}
-                          </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
-                            NRP: {userItem.nrp} • {formatEnumDisplay(userItem.role)}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+          {/* Loading State for Search */}
+          {isSearching && showSearchResults && (
+            <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg z-[9999] p-4">
+              <div className="flex items-center justify-center gap-2">
+                <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 dark:border-blue-400"></div>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Searching...</p>
+              </div>
             </div>
           )}
+          {/* Search Results Dropdown */}
+          {showSearchResults && !isSearching && debouncedSearchQuery.trim().length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg z-[9999] max-h-96 overflow-y-auto">
+              {searchResults.suggestions.length === 0 && searchResults.users.length === 0 ? (
+                <div className="p-4 text-center">
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">Not Found</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-500">
+                    No search results for &quot;{debouncedSearchQuery}&quot;
+                  </p>
+                </div>
+                ) : (
+                  <>
+                    {searchResults.suggestions.length > 0 && (
+                      <div className="p-2">
+                        <div className="px-2 py-1 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">
+                          Suggestions ({searchResults.suggestions.length})
+                        </div>
+                        {searchResults.suggestions.map((suggestion) => (
+                          <div
+                            key={suggestion.id}
+                            onClick={() => handleSuggestionClick(suggestion)}
+                            className="px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded cursor-pointer transition-colors"
+                          >
+                            <div className="flex items-start gap-2">
+                              <FileText className="h-4 w-4 text-slate-400 mt-0.5 shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
+                                  {suggestion.judulIde}
+                                </p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1">
+                                  {suggestion.masalahYangDihadapi}
+                                </p>
+                                {suggestion.user && (
+                                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                                    By: {suggestion.user.firstName} {suggestion.user.lastName}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {searchResults.users.length > 0 && (
+                      <div className="p-2 border-t border-slate-200 dark:border-slate-800">
+                        <div className="px-2 py-1 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">
+                          Users ({searchResults.users.length})
+                        </div>
+                        {searchResults.users.map((userItem) => (
+                          <div
+                            key={userItem.id}
+                            onClick={() => handleUserClick(userItem)}
+                            className="px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded cursor-pointer transition-colors"
+                          >
+                            <div className="flex items-center gap-2">
+                              <Users className="h-4 w-4 text-slate-400 shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                                  {userItem.firstName} {userItem.lastName}
+                                </p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                  NRP: {userItem.nrp} • {formatEnumDisplay(userItem.role)}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
         </div>
         <div className="flex items-center gap-4">
           <Button
@@ -411,70 +458,94 @@ export default function Navbar() {
                 placeholder={searchPlaceholder}
                 value={searchQuery}
                 onChange={handleSearchChange}
-                onFocus={() => setShowSearchResults(searchQuery.trim().length > 0)}
+                onFocus={() => {
+                  if (debouncedSearchQuery.trim().length > 0 && !isSearching) {
+                    setShowSearchResults(true);
+                  }
+                }}
                 className="pl-10 bg-slate-100 dark:bg-slate-800 border-0"
                 autoFocus
               />
             </div>
+            {/* Loading State for Search */}
+            {isSearching && showSearchResults && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg z-[9999] p-4">
+                <div className="flex items-center justify-center gap-2">
+                  <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 dark:border-blue-400"></div>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Searching...</p>
+                </div>
+              </div>
+            )}
             {/* Search Results Dropdown for Mobile */}
-            {showSearchResults && (searchResults.suggestions.length > 0 || searchResults.users.length > 0) && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
-                {searchResults.suggestions.length > 0 && (
-                  <div className="p-2">
-                    <div className="px-2 py-1 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">
-                      Suggestions ({searchResults.suggestions.length})
-                    </div>
-                    {searchResults.suggestions.map((suggestion) => (
-                      <div
-                        key={suggestion.id}
-                        onClick={() => handleSuggestionClick(suggestion)}
-                        className="px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded cursor-pointer transition-colors"
-                      >
-                        <div className="flex items-start gap-2">
-                          <FileText className="h-4 w-4 text-slate-400 mt-0.5 shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
-                              {suggestion.judulIde}
-                            </p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1">
-                              {suggestion.masalahYangDihadapi}
-                            </p>
-                            {suggestion.user && (
-                              <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
-                                By: {suggestion.user.firstName} {suggestion.user.lastName}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+            {showSearchResults && !isSearching && debouncedSearchQuery.trim().length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg z-[9999] max-h-96 overflow-y-auto">
+                {searchResults.suggestions.length === 0 && searchResults.users.length === 0 ? (
+                  <div className="p-4 text-center">
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">Not Found</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500">
+                      No search results for &quot;{debouncedSearchQuery}&quot;
+                    </p>
                   </div>
-                )}
-                {searchResults.users.length > 0 && (
-                  <div className="p-2 border-t border-slate-200 dark:border-slate-800">
-                    <div className="px-2 py-1 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">
-                      Users ({searchResults.users.length})
-                    </div>
-                    {searchResults.users.map((userItem) => (
-                      <div
-                        key={userItem.id}
-                        onClick={() => handleUserClick(userItem)}
-                        className="px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded cursor-pointer transition-colors"
-                      >
-                        <div className="flex items-center gap-2">
-                          <Users className="h-4 w-4 text-slate-400 shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                              {userItem.firstName} {userItem.lastName}
-                            </p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">
-                              NRP: {userItem.nrp} • {formatEnumDisplay(userItem.role)}
-                            </p>
-                          </div>
+                ) : (
+                  <>
+                    {searchResults.suggestions.length > 0 && (
+                      <div className="p-2">
+                        <div className="px-2 py-1 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">
+                          Suggestions ({searchResults.suggestions.length})
                         </div>
+                        {searchResults.suggestions.map((suggestion) => (
+                          <div
+                            key={suggestion.id}
+                            onClick={() => handleSuggestionClick(suggestion)}
+                            className="px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded cursor-pointer transition-colors"
+                          >
+                            <div className="flex items-start gap-2">
+                              <FileText className="h-4 w-4 text-slate-400 mt-0.5 shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
+                                  {suggestion.judulIde}
+                                </p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1">
+                                  {suggestion.masalahYangDihadapi}
+                                </p>
+                                {suggestion.user && (
+                                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                                    By: {suggestion.user.firstName} {suggestion.user.lastName}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    )}
+                    {searchResults.users.length > 0 && (
+                      <div className="p-2 border-t border-slate-200 dark:border-slate-800">
+                        <div className="px-2 py-1 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">
+                          Users ({searchResults.users.length})
+                        </div>
+                        {searchResults.users.map((userItem) => (
+                          <div
+                            key={userItem.id}
+                            onClick={() => handleUserClick(userItem)}
+                            className="px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded cursor-pointer transition-colors"
+                          >
+                            <div className="flex items-center gap-2">
+                              <Users className="h-4 w-4 text-slate-400 shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                                  {userItem.firstName} {userItem.lastName}
+                                </p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                  NRP: {userItem.nrp} • {formatEnumDisplay(userItem.role)}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}

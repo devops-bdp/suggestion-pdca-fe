@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useDebounce } from "@/lib/use-debounce";
 import {
   Dialog,
   DialogContent,
@@ -151,6 +152,15 @@ function HistorySection({
 export default function ApprovalPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
+  
+  // Import useDebounce
+  const { useDebounce } = require('@/lib/use-debounce');
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
+  
+  // Calculate isSearching state
+  const isSearching = useMemo(() => {
+    return searchQuery.trim() !== debouncedSearchQuery.trim() && searchQuery.trim().length > 0;
+  }, [searchQuery, debouncedSearchQuery]);
 
   // Always fetch suggestions with status DIAJUKAN
   const endpoint = `/suggestions?statusIde=${StatusIde.DIAJUKAN}`;
@@ -227,19 +237,19 @@ export default function ApprovalPage() {
     }
   };
 
-  // Filter suggestions by search query (NRP or Name)
+  // Filter suggestions by search query (NRP or Name) - use debouncedSearchQuery
   const filteredSuggestions = useMemo(() => {
     if (!suggestions) return [];
-    if (!searchQuery.trim()) return suggestions;
+    if (!debouncedSearchQuery.trim()) return suggestions;
 
-    const query = searchQuery.toLowerCase().trim();
+    const query = debouncedSearchQuery.toLowerCase().trim();
     return suggestions.filter((suggestion) => {
       if (!suggestion.user) return false;
       const fullName = `${suggestion.user.firstName} ${suggestion.user.lastName}`.toLowerCase();
       const nrp = suggestion.user.nrp?.toString().toLowerCase() || "";
       return fullName.includes(query) || nrp.includes(query);
     });
-  }, [suggestions, searchQuery]);
+  }, [suggestions, debouncedSearchQuery]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -347,6 +357,11 @@ export default function ApprovalPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
             />
+            {isSearching && (
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 dark:border-blue-400"></div>
+              </div>
+            )}
           </div>
         </div>
       </Card>
@@ -454,14 +469,45 @@ export default function ApprovalPage() {
         </div>
       )}
 
-      {/* Empty State */}
-      {!loading && (!filteredSuggestions || filteredSuggestions.length === 0) && (
+      {/* Loading State for Search */}
+      {isSearching && debouncedSearchQuery.trim() !== searchQuery.trim() && (
+        <Card className="p-12 flex items-center justify-center min-h-96">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400 mb-4"></div>
+            <p className="text-slate-500 dark:text-slate-400 text-lg">
+              Searching...
+            </p>
+          </div>
+        </Card>
+      )}
+
+      {/* Empty State - No Results from Search */}
+      {!loading && !isSearching && debouncedSearchQuery.trim() && filteredSuggestions && filteredSuggestions.length === 0 && (
+        <Card className="p-12 flex items-center justify-center min-h-96">
+          <div className="text-center">
+            <p className="text-slate-500 dark:text-slate-400 text-lg mb-2">
+              Not Found
+            </p>
+            <p className="text-slate-400 dark:text-slate-500 text-sm mb-4">
+              No search results for &quot;{debouncedSearchQuery}&quot;
+            </p>
+            <Button 
+              onClick={() => setSearchQuery("")} 
+              variant="outline"
+              className="gap-2 cursor-pointer"
+            >
+              Clear Search
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      {/* Empty State - No Suggestions at All */}
+      {!loading && !isSearching && !debouncedSearchQuery.trim() && (!filteredSuggestions || filteredSuggestions.length === 0) && (
         <Card className="p-12 flex items-center justify-center min-h-96">
           <div className="text-center">
             <p className="text-slate-500 dark:text-slate-400 text-lg">
-              {searchQuery.trim()
-                ? "No suggestions found matching your search"
-                : "No suggestions found for approval"}
+              No suggestions found for approval
             </p>
           </div>
         </Card>

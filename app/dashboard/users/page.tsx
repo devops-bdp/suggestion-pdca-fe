@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
+import { useDebounce } from "@/lib/use-debounce";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,14 @@ export default function UsersPage() {
   });
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  
+  // Debounce search query dengan delay 0.5 detik (500ms)
+  const debouncedSearch = useDebounce(filters.search, 500);
+  
+  // Calculate isSearching state
+  const isSearching = useMemo(() => {
+    return filters.search.trim() !== debouncedSearch.trim() && filters.search.trim().length > 0;
+  }, [filters.search, debouncedSearch]);
 
   const {
     data: users,
@@ -93,9 +102,9 @@ export default function UsersPage() {
         return false;
       }
       
-      // Search by NRP
-      if (filters.search && filters.search.trim()) {
-        const searchTerm = filters.search.toLowerCase().trim();
+      // Search by NRP - use debouncedSearch
+      if (debouncedSearch && debouncedSearch.trim()) {
+        const searchTerm = debouncedSearch.toLowerCase().trim();
         const userNrp = user.nrp?.toString().toLowerCase() || "";
         if (!userNrp.includes(searchTerm)) {
           return false;
@@ -104,7 +113,7 @@ export default function UsersPage() {
       
       return true;
     });
-  }, [users, filters]);
+  }, [users, filters.role, filters.department, filters.position, debouncedSearch]);
 
   // Pagination
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
@@ -667,13 +676,46 @@ export default function UsersPage() {
         </>
       )}
 
-      {/* Empty State */}
-      {!loading && !currentUserLoading && (!filteredUsers || filteredUsers.length === 0) && (
+      {/* Loading State for Search */}
+      {isSearching && debouncedSearch.trim() !== filters.search.trim() && (
+        <Card className="p-12 flex items-center justify-center min-h-96">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400 mb-4"></div>
+            <p className="text-slate-500 dark:text-slate-400 text-lg">
+              Searching...
+            </p>
+          </div>
+        </Card>
+      )}
+
+      {/* Empty State - No Results from Search */}
+      {!loading && !currentUserLoading && !isSearching && debouncedSearch.trim() && filteredUsers && filteredUsers.length === 0 && (
+        <Card className="p-12 flex items-center justify-center min-h-96">
+          <div className="text-center">
+            <p className="text-slate-500 dark:text-slate-400 text-lg mb-2">
+              Not Found
+            </p>
+            <p className="text-slate-400 dark:text-slate-500 text-sm mb-4">
+              No search results for &quot;{debouncedSearch}&quot;
+            </p>
+            <Button 
+              onClick={() => setFilters({ ...filters, search: "" })} 
+              variant="outline"
+              className="gap-2 cursor-pointer"
+            >
+              Clear Search
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      {/* Empty State - No Users at All */}
+      {!loading && !currentUserLoading && !isSearching && !debouncedSearch.trim() && (!filteredUsers || filteredUsers.length === 0) && (
         <Card className="p-12 flex items-center justify-center min-h-96">
           <div className="text-center">
             <p className="text-slate-500 dark:text-slate-400 text-lg mb-4">
-            No users found
-          </p>
+              No users found
+            </p>
             <Button onClick={handleOpenCreate} className="gap-2 cursor-pointer">
               <Plus className="h-4 w-4" />
               Add First User
