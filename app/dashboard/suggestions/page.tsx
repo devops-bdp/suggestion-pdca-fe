@@ -27,6 +27,7 @@ import {
   StatusIde,
   UserProfile,
   Role,
+  PermissionLevel,
 } from "@/types/api";
 import { formatEnumDisplay } from "@/types/utils";
 import { showSuccess, showError } from "@/lib/toast";
@@ -191,6 +192,14 @@ export default function SubmissionsPage() {
     if (!currentUser?.role) return true; // Default to true if role not loaded yet
     const role = currentUser.role as string;
     return role !== Role.Staff && role !== Role.Non_Staff;
+  }, [currentUser]);
+
+  // Check if user has full access (FULL_ACCESS permissionLevel or Super_Admin role)
+  const hasFullAccess = useMemo(() => {
+    if (!currentUser) return false;
+    const permissionLevel = currentUser.permissionLevel as string;
+    const role = currentUser.role as string;
+    return permissionLevel === PermissionLevel.FULL_ACCESS || role === Role.Super_Admin;
   }, [currentUser]);
 
   // Build query string for filters
@@ -1020,25 +1029,40 @@ export default function SubmissionsPage() {
                   className="flex items-center gap-1 md:gap-2 shrink-0 md:ml-4"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleOpenEdit(suggestion)}
-                    className="h-8 w-8 cursor-pointer"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  {suggestion.statusIde === StatusIde.DIAJUKAN && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleOpenStatus(suggestion)}
-                      className="h-8 w-8 text-green-600 hover:text-green-700 cursor-pointer"
-                      title="Update Status"
-                    >
-                      <CheckCircle className="h-4 w-4" />
-                    </Button>
+                  {/* Edit, Change Status, and Delete buttons - only visible for FULL_ACCESS or Super_Admin */}
+                  {hasFullAccess && (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleOpenEdit(suggestion)}
+                        className="h-8 w-8 cursor-pointer"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      {suggestion.statusIde === StatusIde.DIAJUKAN && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleOpenStatus(suggestion)}
+                          className="h-8 w-8 text-green-600 hover:text-green-700 cursor-pointer"
+                          title="Update Status"
+                        >
+                          <CheckCircle className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(suggestion)}
+                        className="h-8 w-8 text-red-600 hover:text-red-700 cursor-pointer"
+                        disabled={deleting}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </>
                   )}
+                  {/* Penilaian button - visible for users with scoring permission */}
                   {suggestion.statusIde === StatusIde.APPROVE && (
                     <Button
                       variant="ghost"
@@ -1050,15 +1074,6 @@ export default function SubmissionsPage() {
                       <ClipboardCheck className="h-4 w-4" />
                     </Button>
                   )}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDelete(suggestion)}
-                    className="h-8 w-8 text-red-600 hover:text-red-700 cursor-pointer"
-                    disabled={deleting}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
                 </div>
               </div>
             </Card>
