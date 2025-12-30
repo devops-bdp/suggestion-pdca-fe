@@ -162,8 +162,9 @@ export default function ApprovalPage() {
     return searchQuery.trim() !== debouncedSearchQuery.trim() && searchQuery.trim().length > 0;
   }, [searchQuery, debouncedSearchQuery]);
 
-  // Always fetch suggestions with status DIAJUKAN
-  const endpoint = `/suggestions?statusIde=${StatusIde.DIAJUKAN}`;
+  // Fetch suggestions with status DIAJUKAN and APPROVE (to show history)
+  // For approval tracking, we want to see both pending and approved suggestions
+  const endpoint = `/suggestions?statusIde=${StatusIde.DIAJUKAN},${StatusIde.APPROVE}`;
 
   const {
     data: suggestions,
@@ -453,15 +454,18 @@ export default function ApprovalPage() {
                   className="flex items-center gap-2 ml-4"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleOpenStatus(suggestion)}
-                    className="h-8 w-8 text-green-600 hover:text-green-700 cursor-pointer"
-                    title="Approve/Reject"
-                  >
-                    <CheckCircle className="h-4 w-4" />
-                  </Button>
+                  {/* Only show approve button if status is DIAJUKAN */}
+                  {suggestion.statusIde === StatusIde.DIAJUKAN && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleOpenStatus(suggestion)}
+                      className="h-8 w-8 text-green-600 hover:text-green-700 cursor-pointer"
+                      title="Approve/Reject"
+                    >
+                      <CheckCircle className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
             </Card>
@@ -648,24 +652,37 @@ export default function ApprovalPage() {
                 )}
               </div>
 
-              {/* Komentar Atasan Input */}
-              <div className="space-y-2 pt-2 border-t">
-                <Label htmlFor="komentarAtasan" className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
-                  Komentar Atasan
-                </Label>
-                <textarea
-                  id="komentarAtasan"
-                  value={statusFormData.komentarAtasan}
-                  onChange={(e) =>
-                    setStatusFormData({
-                      ...statusFormData,
-                      komentarAtasan: e.target.value,
-                    })
-                  }
-                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  placeholder="Masukkan komentar (opsional)"
-                />
-              </div>
+              {/* Komentar Atasan Input - Only show if status is DIAJUKAN */}
+              {selectedSuggestion.statusIde === StatusIde.DIAJUKAN && (
+                <div className="space-y-2 pt-2 border-t">
+                  <Label htmlFor="komentarAtasan" className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
+                    Komentar Atasan
+                  </Label>
+                  <textarea
+                    id="komentarAtasan"
+                    value={statusFormData.komentarAtasan}
+                    onChange={(e) =>
+                      setStatusFormData({
+                        ...statusFormData,
+                        komentarAtasan: e.target.value,
+                      })
+                    }
+                    className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    placeholder="Masukkan komentar (opsional)"
+                  />
+                </div>
+              )}
+              {/* Show existing komentar atasan if status is APPROVE */}
+              {selectedSuggestion.statusIde === StatusIde.APPROVE && selectedSuggestion.komentarAtasan && (
+                <div className="space-y-2 pt-2 border-t">
+                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
+                    Komentar Atasan
+                  </Label>
+                  <p className="mt-1 text-xs md:text-sm text-slate-900 dark:text-slate-100 whitespace-pre-wrap leading-relaxed wrap-break-word">
+                    {selectedSuggestion.komentarAtasan}
+                  </p>
+                </div>
+              )}
 
               {/* History Section */}
               {selectedSuggestion.history && selectedSuggestion.history.length > 0 && (
@@ -680,15 +697,18 @@ export default function ApprovalPage() {
               className="w-full sm:w-auto text-sm md:text-base cursor-pointer"
               disabled={updatingStatus}
             >
-              Cancel
+              Close
             </Button>
-            <Button 
-              onClick={handleApprove} 
-              disabled={updatingStatus} 
-              className="w-full sm:w-auto text-sm md:text-base cursor-pointer bg-green-600 hover:bg-green-700 text-white"
-            >
-              {updatingStatus ? "Approving..." : "Approve"}
-            </Button>
+            {/* Only show approve button if status is DIAJUKAN */}
+            {selectedSuggestion && selectedSuggestion.statusIde === StatusIde.DIAJUKAN && (
+              <Button 
+                onClick={handleApprove} 
+                disabled={updatingStatus} 
+                className="w-full sm:w-auto text-sm md:text-base cursor-pointer bg-green-600 hover:bg-green-700 text-white"
+              >
+                {updatingStatus ? "Approving..." : "Approve"}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
