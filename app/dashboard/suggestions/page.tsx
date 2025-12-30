@@ -550,6 +550,26 @@ export default function SubmissionsPage() {
     }
 
     try {
+      // Always fetch the latest registration number before submitting
+      // This ensures we use the most up-to-date number even if another user created a suggestion
+      let finalNoRegistSS = formData.noRegistSS;
+      try {
+        const result = await apiClient.get<NextRegistNumberResponse>("/suggestions/next-regist-number");
+        if (result && typeof result === 'object') {
+          if ('data' in result && result.data && typeof result.data === 'object') {
+            const dataObj = result.data as any;
+            if ('nextRegistNumber' in dataObj) {
+              finalNoRegistSS = dataObj.nextRegistNumber;
+            }
+          } else if ('nextRegistNumber' in result) {
+            finalNoRegistSS = (result as any).nextRegistNumber;
+          }
+        }
+      } catch (error) {
+        // If fetch fails, use formData.noRegistSS or generateRegistNumber as fallback
+        finalNoRegistSS = formData.noRegistSS || generateRegistNumber;
+      }
+
       // Remove komentarAtasan from create payload (should only be in scoring menu)
       const createPayload: Omit<SuggestionFormData, 'komentarAtasan'> = {
         judulIde: formData.judulIde,
@@ -563,7 +583,7 @@ export default function SubmissionsPage() {
         kriteriaSS: formData.kriteriaSS,
         sifatPerbaikan: formData.sifatPerbaikan,
         userId: formData.userId,
-        noRegistSS: formData.noRegistSS || generateRegistNumber,
+        noRegistSS: finalNoRegistSS || generateRegistNumber,
         tanggalUsulan: formData.tanggalUsulan,
         hubungan: formData.hubungan,
         tanggalEfektif: formData.tanggalEfektif,
