@@ -1076,9 +1076,19 @@ export default function SubmissionsPage() {
               try {
                 // Get the data directly from the API
                 const result = await apiClient.get<NextRegistNumberResponse>("/suggestions/next-regist-number");
-                // Handle different response structures
-                const responseData = (result as any)?.data || result;
-                const nextRegist = responseData?.nextRegistNumber || (responseData as NextRegistNumberResponse)?.data?.nextRegistNumber;
+                // Handle different response structures from apiClient.get
+                // apiClient.get may return the full response or just the data part
+                let nextRegist: string | undefined;
+                if (result && typeof result === 'object') {
+                  // Check if result has the full structure { success: true, data: { nextRegistNumber: ... } }
+                  if ('data' in result && result.data && typeof result.data === 'object') {
+                    nextRegist = (result.data as any)?.nextRegistNumber;
+                  }
+                  // Check if result is directly the data object { nextRegistNumber: ... }
+                  if (!nextRegist && 'nextRegistNumber' in result) {
+                    nextRegist = (result as any).nextRegistNumber;
+                  }
+                }
                 if (nextRegist) {
                   setFormData((prev) => ({
                     ...prev,
