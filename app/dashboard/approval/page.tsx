@@ -193,11 +193,10 @@ export default function ApprovalPage() {
   }, [currentUser, router]);
 
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
-  const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
   const [selectedSuggestion, setSelectedSuggestion] =
     useState<Suggestion | null>(null);
   const [statusFormData, setStatusFormData] = useState<SuggestionStatusUpdate>({
-    statusIde: "",
+    statusIde: StatusIde.APPROVE,
     komentarAtasan: "",
   });
 
@@ -209,30 +208,31 @@ export default function ApprovalPage() {
   const handleOpenStatus = (suggestion: Suggestion) => {
     setSelectedSuggestion(suggestion);
     setStatusFormData({
-      statusIde: suggestion.statusIde,
+      statusIde: StatusIde.APPROVE, // Default to APPROVE
       komentarAtasan: suggestion.komentarAtasan || "",
     });
-    setIsStatusDialogOpen(true);
+    setIsViewDialogOpen(true); // Use view dialog instead of status dialog
   };
 
-  const handleStatusSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const handleApprove = async () => {
     if (!selectedSuggestion) return;
 
     try {
       await updateStatus(
         `/suggestions/${selectedSuggestion.id}/status`,
-        statusFormData
+        {
+          statusIde: StatusIde.APPROVE,
+          komentarAtasan: statusFormData.komentarAtasan || "",
+        }
       );
-      showSuccess("Status updated successfully!");
-      setIsStatusDialogOpen(false);
+      showSuccess("Suggestion approved successfully!");
+      setIsViewDialogOpen(false);
       setSelectedSuggestion(null);
       refetch();
       setTimeout(() => refetch(), 1000);
     } catch (err) {
       showError(
-        err instanceof Error ? err.message : "Failed to update status"
+        err instanceof Error ? err.message : "Failed to approve suggestion"
       );
     }
   };
@@ -513,68 +513,7 @@ export default function ApprovalPage() {
         </Card>
       )}
 
-      {/* Status Update Dialog */}
-      <Dialog open={isStatusDialogOpen} onOpenChange={setIsStatusDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Approve/Reject Suggestion</DialogTitle>
-            <DialogDescription>
-              Update the status of this suggestion.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleStatusSubmit}>
-            <div className="grid gap-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="statusIde">Status *</Label>
-                <select
-                  id="statusIde"
-                  value={statusFormData.statusIde}
-                  onChange={(e) =>
-                    setStatusFormData({ ...statusFormData, statusIde: e.target.value })
-                  }
-                  required
-                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors"
-                >
-                  <option value="">-- Select Status --</option>
-                  <option value={StatusIde.DIAJUKAN}>Diajukan</option>
-                  <option value={StatusIde.APPROVE}>Approve</option>
-                  <option value={StatusIde.DINILAI}>Dinilai</option>
-                </select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="komentarAtasan">Komentar Atasan</Label>
-                <textarea
-                  id="komentarAtasan"
-                  value={statusFormData.komentarAtasan}
-                  onChange={(e) =>
-                    setStatusFormData({
-                      ...statusFormData,
-                      komentarAtasan: e.target.value,
-                    })
-                  }
-                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsStatusDialogOpen(false)}
-                disabled={updatingStatus}
-                className="cursor-pointer"
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={updatingStatus} className="cursor-pointer">
-                {updatingStatus ? "Updating..." : "Update Status"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* View Dialog */}
+      {/* View Dialog with Approve Button */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[95vh] overflow-y-auto p-0 rounded-xl border-2 border-slate-200 dark:border-slate-700 shadow-2xl">
           <DialogHeader className="px-3 md:px-6 pt-3 md:pt-6 pb-2 md:pb-4 border-b sticky top-0 bg-white dark:bg-slate-900 z-10">
@@ -587,85 +526,145 @@ export default function ApprovalPage() {
           </DialogHeader>
           {selectedSuggestion && (
             <div className="px-3 md:px-6 py-2.5 md:py-4 space-y-2.5 md:space-y-3">
-              {/* Status and Basic Info */}
-              <div className="grid grid-cols-2 md:flex md:flex-wrap items-start gap-2 md:gap-4 pb-2 md:pb-3 border-b">
-                <div className="shrink-0">
-                  <Label className="text-xs text-slate-500 dark:text-slate-400">Status</Label>
-                  <div className="mt-0.5 md:mt-1">
-                    <span
-                      className={`inline-flex items-center px-2 md:px-3 py-0.5 md:py-1 rounded-full text-xs font-medium ${getStatusColor(
-                        selectedSuggestion.statusIde
-                      )}`}
-                    >
-                      {formatEnumDisplay(selectedSuggestion.statusIde)}
-                    </span>
+              {/* Status and Basic Info - Grid Layout */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 pb-2 md:pb-3 border-b">
+                {/* Left Section */}
+                <div className="space-y-2 md:space-y-3">
+                  {selectedSuggestion.noRegistSS && (
+                    <div>
+                      <Label className="text-xs text-slate-500 dark:text-slate-400">No. Regist SS</Label>
+                      <p className="mt-0.5 md:mt-1 text-xs md:text-sm font-medium text-slate-900 dark:text-slate-100">
+                        {selectedSuggestion.noRegistSS}
+                      </p>
+                    </div>
+                  )}
+                  {selectedSuggestion.user && (
+                    <div>
+                      <Label className="text-xs text-slate-500 dark:text-slate-400">Submitted By</Label>
+                      <p className="mt-0.5 md:mt-1 text-xs md:text-sm font-medium text-slate-900 dark:text-slate-100">
+                        {selectedSuggestion.user.firstName} {selectedSuggestion.user.lastName}
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        NRP: {selectedSuggestion.user.nrp}
+                      </p>
+                    </div>
+                  )}
+                </div>
+                {/* Right Section */}
+                <div className="space-y-2 md:space-y-3">
+                  <div>
+                    <Label className="text-xs text-slate-500 dark:text-slate-400">Status</Label>
+                    <div className="mt-0.5 md:mt-1">
+                      <span
+                        className={`inline-flex items-center px-2 md:px-3 py-0.5 md:py-1 rounded-full text-xs font-medium ${getStatusColor(
+                          selectedSuggestion.statusIde
+                        )}`}
+                      >
+                        {formatEnumDisplay(selectedSuggestion.statusIde)}
+                      </span>
+                    </div>
                   </div>
-                </div>
-                <div className="shrink-0">
-                  <Label className="text-xs text-slate-500 dark:text-slate-400">Kriteria SS</Label>
-                  <p className="mt-0.5 md:mt-1 text-xs md:text-sm font-medium text-slate-900 dark:text-slate-100">
-                    {formatEnumDisplay(selectedSuggestion.kriteriaSS)}
-                  </p>
-                </div>
-                <div className="shrink-0 col-span-2 md:col-span-1">
-                  <Label className="text-xs text-slate-500 dark:text-slate-400">Sifat Perbaikan</Label>
-                  <p className="mt-0.5 md:mt-1 text-xs md:text-sm font-medium text-slate-900 dark:text-slate-100">
-                    {formatEnumDisplay(selectedSuggestion.sifatPerbaikan)}
-                  </p>
-                </div>
-                {selectedSuggestion.user && (
-                  <div className="col-span-2 md:col-span-1 md:ml-auto shrink-0 w-full md:w-auto">
-                    <Label className="text-xs text-slate-500 dark:text-slate-400">Submitted By</Label>
+                  <div>
+                    <Label className="text-xs text-slate-500 dark:text-slate-400">Kriteria SS</Label>
                     <p className="mt-0.5 md:mt-1 text-xs md:text-sm font-medium text-slate-900 dark:text-slate-100">
-                      {selectedSuggestion.user.firstName} {selectedSuggestion.user.lastName}
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      NRP: {selectedSuggestion.user.nrp}
+                      {formatEnumDisplay(selectedSuggestion.kriteriaSS)}
                     </p>
                   </div>
-                )}
+                  <div>
+                    <Label className="text-xs text-slate-500 dark:text-slate-400">Sifat Perbaikan</Label>
+                    <p className="mt-0.5 md:mt-1 text-xs md:text-sm font-medium text-slate-900 dark:text-slate-100">
+                      {formatEnumDisplay(selectedSuggestion.sifatPerbaikan)}
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {/* Content Sections */}
               <div className="space-y-2.5 md:space-y-3">
                 <div>
-                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Masalah Yang Dihadapi</Label>
+                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">MASALAH YANG DIHADAPI</Label>
                   <p className="mt-1 text-xs md:text-sm text-slate-900 dark:text-slate-100 whitespace-pre-wrap leading-relaxed wrap-break-word">
                     {selectedSuggestion.masalahYangDihadapi}
                   </p>
                 </div>
                 <div>
-                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Uraian Ide</Label>
+                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">URAIAN IDE</Label>
                   <p className="mt-1 text-xs md:text-sm text-slate-900 dark:text-slate-100 whitespace-pre-wrap leading-relaxed wrap-break-word">
                     {selectedSuggestion.uraianIde}
                   </p>
                 </div>
                 <div>
-                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Ide Proses Perbaikan</Label>
+                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">IDE PROSES PERBAIKAN</Label>
                   <p className="mt-1 text-xs md:text-sm text-slate-900 dark:text-slate-100 whitespace-pre-wrap leading-relaxed wrap-break-word">
                     {selectedSuggestion.ideProsesPerbaikan}
                   </p>
                 </div>
                 <div>
-                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Hasil Uraian Proses</Label>
+                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">HASIL URAIAN PROSES</Label>
                   <p className="mt-1 text-xs md:text-sm text-slate-900 dark:text-slate-100 whitespace-pre-wrap leading-relaxed wrap-break-word">
                     {selectedSuggestion.hasilUraianProses}
                   </p>
                 </div>
                 <div>
-                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Evaluasi Ide</Label>
+                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">EVALUASI IDE</Label>
                   <p className="mt-1 text-xs md:text-sm text-slate-900 dark:text-slate-100 whitespace-pre-wrap leading-relaxed wrap-break-word">
                     {selectedSuggestion.evaluasiIde}
                   </p>
                 </div>
-                {selectedSuggestion.komentarAtasan && (
-                  <div>
-                    <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Komentar Atasan</Label>
-                    <p className="mt-1 text-xs md:text-sm text-slate-900 dark:text-slate-100 whitespace-pre-wrap leading-relaxed wrap-break-word">
-                      {selectedSuggestion.komentarAtasan}
-                    </p>
+                {/* Foto Sebelum & Sesudah */}
+                {(selectedSuggestion.fotoSebelum || selectedSuggestion.fotoSesudah) && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                    {selectedSuggestion.fotoSebelum && (
+                      <div>
+                        <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Foto Sebelum</Label>
+                        <div className="mt-1">
+                          <img 
+                            src={selectedSuggestion.fotoSebelum} 
+                            alt="Foto Sebelum" 
+                            className="w-full h-auto rounded-md border border-slate-200 dark:border-slate-700"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                    {selectedSuggestion.fotoSesudah && (
+                      <div>
+                        <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Foto Sesudah</Label>
+                        <div className="mt-1">
+                          <img 
+                            src={selectedSuggestion.fotoSesudah} 
+                            alt="Foto Sesudah" 
+                            className="w-full h-auto rounded-md border border-slate-200 dark:border-slate-700"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
+              </div>
+
+              {/* Komentar Atasan Input */}
+              <div className="space-y-2 pt-2 border-t">
+                <Label htmlFor="komentarAtasan" className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
+                  Komentar Atasan
+                </Label>
+                <textarea
+                  id="komentarAtasan"
+                  value={statusFormData.komentarAtasan}
+                  onChange={(e) =>
+                    setStatusFormData({
+                      ...statusFormData,
+                      komentarAtasan: e.target.value,
+                    })
+                  }
+                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  placeholder="Masukkan komentar (opsional)"
+                />
               </div>
 
               {/* History Section */}
@@ -674,9 +673,21 @@ export default function ApprovalPage() {
               )}
             </div>
           )}
-          <DialogFooter className="px-3 md:px-6 py-2.5 md:py-4 border-t bg-slate-50 dark:bg-slate-900 sticky bottom-0">
-            <Button variant="outline" onClick={() => setIsViewDialogOpen(false)} className="w-full md:w-auto text-sm md:text-base cursor-pointer">
-              Close
+          <DialogFooter className="px-3 md:px-6 py-2.5 md:py-4 border-t bg-slate-50 dark:bg-slate-900 sticky bottom-0 flex flex-col sm:flex-row gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsViewDialogOpen(false)} 
+              className="w-full sm:w-auto text-sm md:text-base cursor-pointer"
+              disabled={updatingStatus}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleApprove} 
+              disabled={updatingStatus} 
+              className="w-full sm:w-auto text-sm md:text-base cursor-pointer bg-green-600 hover:bg-green-700 text-white"
+            >
+              {updatingStatus ? "Approving..." : "Approve"}
             </Button>
           </DialogFooter>
         </DialogContent>
