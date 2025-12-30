@@ -425,24 +425,54 @@ export default function SubmissionsPage() {
   const handleOpenCreate = async () => {
     resetForm();
     setIsCreateDialogOpen(true);
-    // Always refetch next registration number to get latest global number
+    // Always fetch next registration number directly from API to get latest global number
     // This ensures we get the most up-to-date number, even if another user just created a suggestion
     try {
+      // Get the data directly from the API
+      // apiClient.get returns response.data, so if backend returns { success: true, data: {...} }
+      // apiClient.get will return { success: true, data: {...} }
+      const result = await apiClient.get<NextRegistNumberResponse>("/suggestions/next-regist-number");
+      // Extract nextRegistNumber from response structure
+      // Backend returns: { success: true, data: { nextRegistNumber: "02/SS-PDCA/...", ... } }
+      // apiClient.get returns response.data, so it returns: { success: true, data: { nextRegistNumber: "02/SS-PDCA/...", ... } }
+      let nextRegist: string | undefined;
+      if (result && typeof result === 'object') {
+        // Check if result has the full structure { success: true, data: { nextRegistNumber: ... } }
+        if ('data' in result && result.data && typeof result.data === 'object') {
+          const dataObj = result.data as any;
+          if ('nextRegistNumber' in dataObj) {
+            nextRegist = dataObj.nextRegistNumber;
+          }
+        }
+        // Check if result is directly the data object { nextRegistNumber: ... }
+        if (!nextRegist && 'nextRegistNumber' in result) {
+          nextRegist = (result as any).nextRegistNumber;
+        }
+      }
+      if (nextRegist) {
+        setFormData((prev) => ({
+          ...prev,
+          noRegistSS: nextRegist,
+        }));
+      } else {
+        // Fallback to generateRegistNumber if API response structure is different
+        setTimeout(() => {
+          setFormData((prev) => ({
+            ...prev,
+            noRegistSS: generateRegistNumber,
+          }));
+        }, 300);
+      }
+      // Also refetch for useData hook to keep it in sync
       await refetchNextRegist();
-      // Wait a bit for the data to be processed and state updated
+    } catch (error) {
+      // If refetch fails, use current generateRegistNumber
       setTimeout(() => {
-        // Use generateRegistNumber which will have the latest value after refetch
         setFormData((prev) => ({
           ...prev,
           noRegistSS: generateRegistNumber,
         }));
-      }, 500);
-    } catch (error) {
-      // If refetch fails, use current generateRegistNumber
-      setFormData((prev) => ({
-        ...prev,
-        noRegistSS: generateRegistNumber,
-      }));
+      }, 300);
     }
   };
 
@@ -1080,12 +1110,15 @@ export default function SubmissionsPage() {
                 const result = await apiClient.get<NextRegistNumberResponse>("/suggestions/next-regist-number");
                 // Extract nextRegistNumber from response structure
                 // Backend returns: { success: true, data: { nextRegistNumber: "02/SS-PDCA/...", ... } }
-                // apiClient.get returns: { success: true, data: { nextRegistNumber: "02/SS-PDCA/...", ... } }
+                // apiClient.get returns response.data, so it returns: { success: true, data: { nextRegistNumber: "02/SS-PDCA/...", ... } }
                 let nextRegist: string | undefined;
                 if (result && typeof result === 'object') {
                   // Check if result has the full structure { success: true, data: { nextRegistNumber: ... } }
-                  if ('data' in result && result.data && typeof result.data === 'object' && 'nextRegistNumber' in result.data) {
-                    nextRegist = (result.data as any).nextRegistNumber;
+                  if ('data' in result && result.data && typeof result.data === 'object') {
+                    const dataObj = result.data as any;
+                    if ('nextRegistNumber' in dataObj) {
+                      nextRegist = dataObj.nextRegistNumber;
+                    }
                   }
                   // Check if result is directly the data object { nextRegistNumber: ... }
                   if (!nextRegist && 'nextRegistNumber' in result) {
