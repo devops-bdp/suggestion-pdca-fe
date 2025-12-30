@@ -1075,14 +1075,17 @@ export default function SubmissionsPage() {
             (async () => {
               try {
                 // Get the data directly from the API
+                // apiClient.get returns response.data, so if backend returns { success: true, data: {...} }
+                // apiClient.get will return { success: true, data: {...} }
                 const result = await apiClient.get<NextRegistNumberResponse>("/suggestions/next-regist-number");
-                // Handle different response structures from apiClient.get
-                // apiClient.get may return the full response or just the data part
+                // Extract nextRegistNumber from response structure
+                // Backend returns: { success: true, data: { nextRegistNumber: "02/SS-PDCA/...", ... } }
+                // apiClient.get returns: { success: true, data: { nextRegistNumber: "02/SS-PDCA/...", ... } }
                 let nextRegist: string | undefined;
                 if (result && typeof result === 'object') {
                   // Check if result has the full structure { success: true, data: { nextRegistNumber: ... } }
-                  if ('data' in result && result.data && typeof result.data === 'object') {
-                    nextRegist = (result.data as any)?.nextRegistNumber;
+                  if ('data' in result && result.data && typeof result.data === 'object' && 'nextRegistNumber' in result.data) {
+                    nextRegist = (result.data as any).nextRegistNumber;
                   }
                   // Check if result is directly the data object { nextRegistNumber: ... }
                   if (!nextRegist && 'nextRegistNumber' in result) {
