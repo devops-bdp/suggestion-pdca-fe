@@ -171,7 +171,7 @@ export default function SubmissionsPage() {
     statusIde: "",
     department: "",
     kriteriaSS: "",
-    search: "", // Search by NRP or name
+    search: "", // Search by No. Regist SS, NRP or name
   });
   // Debounce search query dengan delay 0.5 detik (500ms)
   const debouncedSearch = useDebounce(filters.search, 500);
@@ -219,6 +219,24 @@ export default function SubmissionsPage() {
     endpoint,
   });
 
+  // Fetch next registration number from backend (global, sequential across all users)
+  interface NextRegistNumberResponse {
+    success: boolean;
+    data: {
+      nextRegistNumber: string;
+      currentMonth: number;
+      currentYear: number;
+      monthRoman: string;
+    };
+  }
+  const {
+    data: nextRegistData,
+    refetch: refetchNextRegist,
+  } = useData<NextRegistNumberResponse>({
+    endpoint: "/suggestions/next-regist-number",
+    immediate: true,
+  });
+
   // Filter suggestions by search (NRP or name) on client side AND by user role
   // Use debouncedSearch instead of filters.search untuk delay
   const suggestions = useMemo(() => {
@@ -243,6 +261,10 @@ export default function SubmissionsPage() {
 
     const searchTerm = debouncedSearch.toLowerCase().trim();
     return filteredData.filter((suggestion) => {
+      // Search by No. Regist SS
+      if (suggestion.noRegistSS?.toLowerCase().includes(searchTerm)) {
+        return true;
+      }
       // Search by user NRP
       if (suggestion.user?.nrp?.toLowerCase().includes(searchTerm)) {
         return true;
@@ -277,67 +299,20 @@ export default function SubmissionsPage() {
     return romanNumerals[month] || '';
   };
 
-  // Generate auto registration number
-  // Use suggestionsData (raw data) instead of suggestions (filtered) for accurate counting
-  // IMPORTANT: This function automatically resets to "01" at the start of each new month
+  // Get registration number from backend (global, sequential across all users)
+  // IMPORTANT: Registration numbers are GLOBAL - sequential across all users
+  // Automatically resets to "01" at the start of each new month
   const generateRegistNumber = useMemo(() => {
+    if (nextRegistData?.data?.nextRegistNumber) {
+      return nextRegistData.data.nextRegistNumber;
+    }
+    // Fallback: generate locally if backend data not available
     const now = new Date();
-    const currentMonth = now.getMonth() + 1; // 1-12
+    const currentMonth = now.getMonth() + 1;
     const currentYear = now.getFullYear();
     const monthRoman = monthToRoman(currentMonth);
-    
-    // Use raw suggestionsData instead of filtered suggestions for accurate counting
-    const rawSuggestions = suggestionsData || [];
-    
-    // Default if no suggestions available - always start with 01 for new month
-    if (!Array.isArray(rawSuggestions) || rawSuggestions.length === 0) {
-      return `01/SS-PDCA/${monthRoman}/${currentYear}`;
-    }
-    
-    // Filter suggestions by CURRENT month and year ONLY
-    // This ensures that when month changes, the filter will be different,
-    // resulting in an empty array or only suggestions from the new month,
-    // which will reset maxIndex to 0 and generate "01" for the new month
-    const currentMonthSuggestions = rawSuggestions.filter((s) => {
-      // Try to extract month/year from noRegistSS if available
-      if (s.noRegistSS) {
-        const match = s.noRegistSS.match(/\/([IVX]+)\/(\d{4})$/);
-        if (match) {
-          const suggestionMonth = match[1];
-          const suggestionYear = parseInt(match[2]);
-          // Only include suggestions from the CURRENT month and year
-          // This ensures automatic reset to "01" when month changes
-          return suggestionMonth === monthRoman && suggestionYear === currentYear;
-        }
-      }
-      // Fallback to createdAt date - also filter by current month/year
-      const createdDate = new Date(s.createdAt);
-      return createdDate.getMonth() + 1 === currentMonth && createdDate.getFullYear() === currentYear;
-    });
-    
-    // Get the highest index number from existing suggestions in CURRENT month only
-    // When month changes, currentMonthSuggestions will be empty or contain only new month's data,
-    // so maxIndex will be 0, resulting in "01" for the new month
-    let maxIndex = 0;
-    currentMonthSuggestions.forEach((s) => {
-      if (s.noRegistSS) {
-        const match = s.noRegistSS.match(/^(\d+)\//);
-        if (match) {
-          const index = parseInt(match[1]);
-          if (index > maxIndex) {
-            maxIndex = index;
-          }
-        }
-      }
-    });
-    
-    // Generate next index (pad with zero)
-    // For new month: maxIndex = 0, so nextIndex = "01"
-    // For same month: maxIndex = highest existing, so nextIndex = maxIndex + 1
-    const nextIndex = String(maxIndex + 1).padStart(2, '0');
-    
-    return `${nextIndex}/SS-PDCA/${monthRoman}/${currentYear}`;
-  }, [suggestionsData]);
+    return `01/SS-PDCA/${monthRoman}/${currentYear}`;
+  }, [nextRegistData]);
 
   const { data: statisticsData, loading: statisticsLoading } = useData<{ success: boolean; data: SuggestionStatistics } | SuggestionStatistics>({
     endpoint: statisticsEndpoint,
@@ -447,12 +422,12 @@ export default function SubmissionsPage() {
 
   // Handlers
   const handleOpenCreate = async () => {
-    // Refetch suggestions first to get latest data for accurate registration number
-    await refetch();
+    // Refetch next registration number first to get latest global number
+    await refetchNextRegist();
     resetForm();
     setIsCreateDialogOpen(true);
     // Auto-generate registration number when opening create dialog
-    // Use setTimeout to avoid cascading renders and ensure suggestions data is loaded
+    // Use setTimeout to ensure registration number data is loaded
     setTimeout(() => {
       setFormData((prev) => ({
         ...prev,
@@ -557,14 +532,17 @@ export default function SubmissionsPage() {
       showSuccess("Suggestion created successfully!");
       setIsCreateDialogOpen(false);
       resetForm();
-      // Refetch immediately and multiple times to ensure data is updated
+      // Refetch suggestions and next registration number
       await refetch();
+      await refetchNextRegist();
       // Wait a bit for data to be fully updated, then refetch again
       setTimeout(async () => {
         await refetch();
+        await refetchNextRegist();
       }, 500);
       setTimeout(async () => {
         await refetch();
+        await refetchNextRegist();
       }, 1500);
     } catch (err) {
       showError(
@@ -804,7 +782,7 @@ export default function SubmissionsPage() {
                   <Input
                     id="search"
                     type="text"
-                    placeholder="Search by NRP or name..."
+                    placeholder="Search by No. Regist SS, NRP or name..."
                     value={filters.search}
                     onChange={(e) =>
                       setFilters({ ...filters, search: e.target.value })
@@ -1082,8 +1060,8 @@ export default function SubmissionsPage() {
         onOpenChange={(open) => {
           setIsCreateDialogOpen(open);
           if (open) {
-            // When dialog opens, refetch to get latest suggestions data
-            refetch().then(() => {
+            // When dialog opens, refetch next registration number to get latest global number
+            refetchNextRegist().then(() => {
               // Wait a bit for useMemo to recalculate with new data
               setTimeout(() => {
                 setFormData((prev) => ({
