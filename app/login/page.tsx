@@ -28,12 +28,10 @@ export default function LoginPage() {
       (response as any).access_token;
     
     if (!token || typeof token !== "string") {
-      console.error("Response structure:", response);
       throw new Error("Token not found in login response.");
     }
 
     window.localStorage.setItem(AUTH_TOKEN_KEY, token);
-    console.log("Token saved successfully");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -55,12 +53,6 @@ export default function LoginPage() {
         password: password.trim() 
       };
       
-      console.log("Sending login request:", { 
-        endpoint: "/auth/login",
-        payload: { ...payload, password: "***" },
-        fullUrl: "https://sugestion-system.vercel.app/api/auth/login"
-      });
-      
       let result: LoginResponse;
       
       try {
@@ -72,7 +64,6 @@ export default function LoginPage() {
       } catch (firstError) {
         // If 500 error, try with number nrp (some APIs expect number)
         if (firstError instanceof Error && firstError.message.includes("Internal server error")) {
-          console.log("Trying alternative format: nrp as number");
           const numericNrp = parseInt(nrp.trim(), 10);
           if (!isNaN(numericNrp)) {
             try {
@@ -95,14 +86,12 @@ export default function LoginPage() {
         }
       }
 
-      console.log("Login response received:", result);
       persistToken(result);
       showSuccess("Login successful! Redirecting...");
       setTimeout(() => {
       router.replace("/dashboard");
       }, 500);
     } catch (err) {
-      console.error("Login error:", err);
       let message = "Invalid NRP or password.";
       
       if (err instanceof Error) {

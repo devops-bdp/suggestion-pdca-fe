@@ -64,13 +64,6 @@ export default function UsersPage() {
     }
   }, [currentUser, router]);
 
-  // Debug: Log users data structure
-  useEffect(() => {
-    if (users && users.length > 0) {
-      console.log("Users data received:", users);
-      console.log("First user structure:", users[0]);
-    }
-  }, [users]);
 
   const { mutate: createUser, loading: creating } = useMutation<UserFormData, User>("post");
   const { mutate: updateUser, loading: updating } = useMutation<UserFormData, User>("put");
@@ -224,33 +217,20 @@ export default function UsersPage() {
         // Staff and Non_Staff always get SUBMITTER
         if (formData.role === Role.Staff || formData.role === Role.Non_Staff) {
           payload.permissionLevel = PermissionLevel.SUBMITTER;
-          console.log("✅ [Frontend] Auto-setting permissionLevel to SUBMITTER for Staff/Non_Staff");
         } else if (formData.permissionLevel && formData.permissionLevel.trim()) {
           // For other roles, use the selected permissionLevel
           payload.permissionLevel = formData.permissionLevel.trim();
-          console.log("✅ [Frontend] Including permissionLevel in payload:", payload.permissionLevel);
         }
         // Only include password if it's provided (for update)
         if (formData.password && formData.password.trim()) {
           payload.password = formData.password;
         }
 
-        console.log("📤 Updating user:", editingUser.id);
-        console.log("🔍 formData.permissionLevel value:", formData.permissionLevel);
-        console.log("🔍 formData.permissionLevel type:", typeof formData.permissionLevel);
-        console.log("🔍 formData.permissionLevel truthy check:", !!formData.permissionLevel);
-        console.log("🔍 formData.permissionLevel trim check:", formData.permissionLevel?.trim());
-        console.log("🔍 formData object:", JSON.stringify(formData, null, 2));
-        console.log("📦 Full payload being sent:", JSON.stringify(payload, null, 2));
-        console.log("📦 Payload keys:", Object.keys(payload));
-        console.log("📦 Payload has permissionLevel:", "permissionLevel" in payload);
         const response = await updateUser(`/users/${editingUser.id}`, payload);
-        console.log("✅ Update response:", response);
         
         // Update editingUser with the response data if available
         if (response && typeof response === 'object' && 'data' in response) {
           const updatedUserData = response.data as User;
-          console.log("✅ Updated user data from response:", updatedUserData);
           // Update the editingUser state with the new data
           setEditingUser({
             ...editingUser,
@@ -289,12 +269,9 @@ export default function UsersPage() {
           payload.permissionLevel = formData.permissionLevel;
         }
 
-        console.log("Creating user via /auth/register:", payload);
         await createUser("/auth/register", payload);
         showSuccess(`User ${formData.firstName} ${formData.lastName} created successfully!`);
       }
-      
-      console.log("User operation successful");
       
       // Close dialog and reset form first
       handleCloseDialog();
@@ -308,7 +285,6 @@ export default function UsersPage() {
         refetch();
       }, 1500);
     } catch (err) {
-      console.error("User operation error:", err);
       const message = err instanceof Error ? err.message : "Failed to save user";
       showError(message);
     }
@@ -328,9 +304,7 @@ export default function UsersPage() {
     }
 
     try {
-      console.log("Deleting user:", user.id);
       await deleteUser(`/users/${user.id}`);
-      console.log("User deleted successfully");
       showSuccess(`User ${user.firstName} ${user.lastName} deleted successfully!`);
       
       // Refetch immediately and also after a delay to ensure data is updated
@@ -339,7 +313,6 @@ export default function UsersPage() {
         refetch();
       }, 1000);
     } catch (err) {
-      console.error("Delete error:", err);
       showError(err instanceof Error ? err.message : "Failed to delete user");
     }
   };

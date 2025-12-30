@@ -43,14 +43,6 @@ export function useData<T>({
         }
       }
       
-      // Log for debugging
-      if (process.env.NODE_ENV === "development") {
-        console.log(`[useData] ${endpoint}:`, {
-          originalResult: result,
-          extractedData: extractedData,
-          isArray: Array.isArray(extractedData),
-        });
-      }
       
       // Set data - handle both array and object responses
       if (Array.isArray(extractedData)) {
@@ -64,7 +56,6 @@ export function useData<T>({
       }
     } catch (err) {
       setError(err instanceof Error ? err : new Error("Failed to fetch data"));
-      console.error("Data fetch error:", err);
     } finally {
       setLoading(false);
     }

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useMemo } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { Bell, Search, LogOut, User, X, FileText, Users } from "lucide-react";
+import { Bell, Search, LogOut, User as UserIcon, X, FileText, Users } from "lucide-react";
 import { useDebounce } from "@/lib/use-debounce";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { apiClient, logout } from "@/types/api-client";
 import { useData } from "@/types/hooks";
-import { UserProfile, Suggestion, Role, PermissionLevel } from "@/types/api";
+import { UserProfile, Suggestion, Role, PermissionLevel, User } from "@/types/api";
 import { formatEnumDisplay, canManageUsers } from "@/types/utils";
 import { showSuccess } from "@/lib/toast";
 
@@ -63,7 +63,7 @@ export default function Navbar() {
     return canManageUsers(user.permissionLevel);
   }, [user?.permissionLevel]);
 
-  const { data: usersData } = useData<any>({
+  const { data: usersData } = useData<User[] | { data: User[] }>({
     endpoint: "/users/all",
     immediate: debouncedSearchQuery.trim().length > 0 && canSearchUsers, // Only fetch if user has FULL_ACCESS
   });
@@ -98,25 +98,18 @@ export default function Navbar() {
         return belongsToUser;
       });
       
-      if (process.env.NODE_ENV === "development") {
-        console.log("[Navbar Search] Filtered suggestions for SUBMITTER:", {
-          userId: user.id,
-          permissionLevel: user.permissionLevel,
-          filteredCount: suggestionsArray.length
-        });
-      }
     }
     
     return suggestionsArray;
-  }, [suggestionsData, canViewAllSuggestions, user?.id, user?.role]);
+  }, [suggestionsData, canViewAllSuggestions, user?.id]);
 
   // Extract users array
   const users = useMemo(() => {
     if (!usersData) return [];
     if (Array.isArray(usersData)) return usersData;
-    if (usersData && typeof usersData === 'object') {
-      const data = usersData as any;
-      if ('data' in data && Array.isArray(data.data)) {
+    if (usersData && typeof usersData === 'object' && 'data' in usersData) {
+      const data = usersData as { data: User[] };
+      if (Array.isArray(data.data)) {
         return data.data;
       }
     }
@@ -241,7 +234,6 @@ export default function Navbar() {
         : null;
       
       if (!token) {
-        console.warn("No token found, skipping profile fetch");
         setLoading(false);
         return;
       }
@@ -252,7 +244,6 @@ export default function Navbar() {
         const profileData = (data as any)?.data || data;
         setUser(profileData);
       } catch (error) {
-        console.error("Failed to fetch user profile:", error);
         // Don't set fallback, let it remain null
       } finally {
         setLoading(false);
@@ -296,7 +287,7 @@ export default function Navbar() {
           </div>
           {/* Loading State for Search */}
           {isSearching && showSearchResults && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg z-[9999] p-4">
+            <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg z-9999 p-4">
               <div className="flex items-center justify-center gap-2">
                 <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 dark:border-blue-400"></div>
                 <p className="text-sm text-slate-500 dark:text-slate-400">Searching...</p>
@@ -305,7 +296,7 @@ export default function Navbar() {
           )}
           {/* Search Results Dropdown */}
           {showSearchResults && !isSearching && debouncedSearchQuery.trim().length > 0 && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg z-[9999] max-h-96 overflow-y-auto">
+            <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg z-9999 max-h-96 overflow-y-auto">
               {searchResults.suggestions.length === 0 && searchResults.users.length === 0 ? (
                 <div className="p-4 text-center">
                   <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">Not Found</p>
@@ -426,7 +417,7 @@ export default function Navbar() {
               <DropdownMenuSeparator />
               <DropdownMenuLabel className="font-normal">
                 <div className="flex items-center gap-2">
-                  <User className="h-4 w-4" />
+                  <UserIcon className="h-4 w-4" />
                   <span className="text-sm">Role: {user?.role ? formatEnumDisplay(user.role) : "Super Admin"}</span>
                 </div>
               </DropdownMenuLabel>
@@ -469,7 +460,7 @@ export default function Navbar() {
             </div>
             {/* Loading State for Search */}
             {isSearching && showSearchResults && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg z-[9999] p-4">
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg z-9999 p-4">
                 <div className="flex items-center justify-center gap-2">
                   <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 dark:border-blue-400"></div>
                   <p className="text-sm text-slate-500 dark:text-slate-400">Searching...</p>
@@ -478,7 +469,7 @@ export default function Navbar() {
             )}
             {/* Search Results Dropdown for Mobile */}
             {showSearchResults && !isSearching && debouncedSearchQuery.trim().length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg z-[9999] max-h-96 overflow-y-auto">
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg z-9999 max-h-96 overflow-y-auto">
                 {searchResults.suggestions.length === 0 && searchResults.users.length === 0 ? (
                   <div className="p-4 text-center">
                     <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">Not Found</p>
@@ -610,7 +601,7 @@ export default function Navbar() {
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex items-center gap-2">
-                    <User className="h-4 w-4" />
+                    <UserIcon className="h-4 w-4" />
                     <span className="text-sm">Role: {user?.role ? formatEnumDisplay(user.role) : "Super Admin"}</span>
                   </div>
                 </DropdownMenuLabel>

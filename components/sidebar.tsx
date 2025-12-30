@@ -59,7 +59,7 @@ function SidebarContent() {
         const profileData = (data as any)?.data || data;
         setUser(profileData);
       } catch (error) {
-        console.error("Failed to fetch user profile:", error);
+        // Silent error handling
       } finally {
         setLoading(false);
       }

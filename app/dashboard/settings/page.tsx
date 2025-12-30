@@ -80,20 +80,11 @@ export default function SettingsPage() {
         newPassword: passwordData.newPassword.trim(),
       }
 
-      console.log('Attempting password update:', {
-        endpoint: `/auth/update-password`,
-        userId: currentUser.id,
-        payloadStructure: Object.keys(payload)
-      })
-
       const result = await changePassword(`/auth/update-password`, payload)
-      
-      console.log('Password update response:', result)
       
       // Verify the update was successful
       if (result === null || result === undefined) {
         // Some APIs return null on success, which is fine
-        console.log('Password update completed (null response indicates success)')
       }
       
       // Reset form on success
@@ -117,14 +108,6 @@ export default function SettingsPage() {
       }
       
       const error = err as ErrorWithResponse;
-      
-      console.error('Password update error details:', {
-        error: err,
-        response: error?.response,
-        status: error?.response?.status,
-        data: error?.response?.data,
-        message: error?.message
-      })
       
       // Extract error message from response
       let errorMessage = 'Failed to update password'

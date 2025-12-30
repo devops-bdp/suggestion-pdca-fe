@@ -199,12 +199,6 @@ export default function SubmissionsPage() {
     // For Staff/Non_Staff, only show their own submissions
     if (!canViewAllSubmissions && currentUser?.id) {
       params.append("userId", currentUser.id);
-      
-      if (process.env.NODE_ENV === "development") {
-        console.log("[Submissions] Filtering by userId for Staff/Non_Staff:", currentUser.id);
-      }
-    } else if (process.env.NODE_ENV === "development") {
-      console.log("[Submissions] User can view all submissions:", currentUser?.role);
     }
     
     if (filters.statusIde) params.append("statusIde", filters.statusIde);
@@ -240,14 +234,6 @@ export default function SubmissionsPage() {
         return belongsToUser;
       });
       
-      if (process.env.NODE_ENV === "development") {
-        console.log("[Submissions] Client-side filtering:", {
-          before: beforeFilter,
-          after: filteredData.length,
-          userId: currentUser.id,
-          role: currentUser.role
-        });
-      }
     }
     
     // Then, apply search filter if debounced search term exists
@@ -349,21 +335,6 @@ export default function SubmissionsPage() {
     // For new month: maxIndex = 0, so nextIndex = "01"
     // For same month: maxIndex = highest existing, so nextIndex = maxIndex + 1
     const nextIndex = String(maxIndex + 1).padStart(2, '0');
-    
-    if (process.env.NODE_ENV === "development") {
-      console.log("[GenerateRegistNumber]", {
-        currentMonth,
-        monthRoman,
-        currentYear,
-        totalSuggestions: rawSuggestions.length,
-        currentMonthSuggestions: currentMonthSuggestions.length,
-        suggestionsWithRegist: currentMonthSuggestions.filter((s) => s.noRegistSS).length,
-        maxIndex,
-        nextIndex,
-        generated: `${nextIndex}/SS-PDCA/${monthRoman}/${currentYear}`,
-        note: "Auto-resets to 01 at start of each new month",
-      });
-    }
     
     return `${nextIndex}/SS-PDCA/${monthRoman}/${currentYear}`;
   }, [suggestionsData]);

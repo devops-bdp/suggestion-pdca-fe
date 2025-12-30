@@ -95,9 +95,6 @@ export default function DashboardPage() {
   // Extract suggestions array from response and filter by user role
   const suggestions = useMemo(() => {
     if (!suggestionsData) {
-      if (process.env.NODE_ENV === "development") {
-        console.log("[Dashboard] No suggestionsData available");
-      }
       return null
     }
     
@@ -115,9 +112,6 @@ export default function DashboardPage() {
     }
     
     if (!extractedData || !Array.isArray(extractedData)) {
-      if (process.env.NODE_ENV === "development") {
-        console.log("[Dashboard] SuggestionsData structure:", Object.keys(suggestionsData || {}));
-      }
       return null;
     }
     
@@ -127,19 +121,7 @@ export default function DashboardPage() {
         return suggestion.userId === profile.id || suggestion.user?.id === profile.id;
       });
       
-      if (process.env.NODE_ENV === "development") {
-        console.log("[Dashboard] Filtered suggestions for Staff/Non_Staff:", {
-          total: extractedData.length,
-          filtered: filtered.length,
-          userId: profile.id
-        });
-      }
-      
       return filtered;
-    }
-    
-    if (process.env.NODE_ENV === "development") {
-      console.log("[Dashboard] Suggestions (all):", extractedData.length);
     }
     
     return extractedData;

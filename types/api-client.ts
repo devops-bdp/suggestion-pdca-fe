@@ -93,22 +93,6 @@ const handleRequest = async <T, D = unknown>(
   config?: AxiosRequestConfig
 ): Promise<T> => {
     try {
-    // Log request details in development
-    if (process.env.NODE_ENV === "development") {
-      const logData = data && typeof data === 'object' 
-        ? Object.fromEntries(
-            Object.entries(data).map(([key, value]) => 
-              [key, key === 'password' ? '***' : value]
-            )
-          )
-        : data;
-      console.log(`API ${method} ${endpoint}:`, {
-        url: `${API_BASE_URL}${endpoint}`,
-        data: logData,
-        headers: axiosInstance.defaults.headers,
-      });
-    }
-
     const response: AxiosResponse<T> = await axiosInstance.request({
       url: endpoint,
       method,
@@ -116,38 +100,10 @@ const handleRequest = async <T, D = unknown>(
       ...config,
       });
 
-    // Log successful responses for debugging (only in development)
-    if (process.env.NODE_ENV === "development") {
-      console.log(`API ${method} ${endpoint} Success:`, response.status, response.data);
-      }
 
     return response.data;
     } catch (error) {
     const message = extractErrorMessage(error);
-    
-    // Enhanced logging for 500 errors
-    if (axios.isAxiosError(error)) {
-      const status = error.response?.status;
-      const responseData = error.response?.data;
-      const requestConfig = error.config;
-      
-      if (status === 500) {
-        console.error(`API Error [${endpoint}]:`, {
-          status,
-          message,
-          responseData,
-          requestUrl: `${API_BASE_URL}${endpoint}`,
-          requestMethod: requestConfig?.method?.toUpperCase(),
-          requestData: requestConfig?.data,
-          requestHeaders: requestConfig?.headers,
-      });
-      } else if (status !== 401) {
-        console.error(`API Error [${endpoint}]:`, message, responseData);
-      }
-    } else {
-      console.error(`API Error [${endpoint}]:`, message);
-    }
-    
     throw new Error(message);
   }
 };
