@@ -295,8 +295,9 @@ export default function ScoringPage() {
     return searchQuery.trim() !== debouncedSearchQuery.trim() && searchQuery.trim().length > 0;
   }, [searchQuery, debouncedSearchQuery]);
 
-  // Always fetch suggestions with status APPROVE
-  const endpoint = `/suggestions?statusIde=${StatusIde.APPROVE}`;
+  // Fetch suggestions with status APPROVE and DINILAI (to show history)
+  // For scoring tracking, we want to see both pending and scored suggestions
+  const endpoint = `/suggestions?statusIde=${StatusIde.APPROVE},${StatusIde.DINILAI}`;
 
   const {
     data: suggestions,
