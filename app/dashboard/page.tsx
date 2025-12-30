@@ -4,9 +4,9 @@ import { useState, useMemo } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useData } from '@/types/hooks'
-import { User as UserIcon, Users, BarChart3, TrendingUp, PieChart, LineChart, Timer, CheckCircle2 } from 'lucide-react'
-import { UserProfile, DashboardStats, Suggestion, StatusIde, Department, Role } from '@/types/api'
-import { formatEnumDisplay } from '@/types/utils'
+import { Users, BarChart3, PieChart, LineChart, Timer, CheckCircle2 } from 'lucide-react'
+import { UserProfile, DashboardStats, Suggestion, StatusIde, Role, User } from '@/types/api'
+import { formatEnumDisplay, canManageUsers } from '@/types/utils'
 import {
   PieChart as RechartsPieChart,
   Pie,
@@ -33,20 +33,19 @@ export default function DashboardPage() {
     endpoint: '/users/profile',
   })
 
-  const { data: stats, loading: statsLoading, error: statsError } = useData<DashboardStats>({
+  const { data: stats } = useData<DashboardStats>({
     endpoint: '/dashboard/stats',
     immediate: false,
   })
 
-  // Only fetch users/all if user has permission (not Staff, Non_Staff, Supervisor, Project_Manager, or Dept_Head)
+  // Only fetch users/all if user has FULL_ACCESS permission level
   const canViewAllUsers = useMemo(() => {
-    if (!profile?.role) return false
-    const role = profile.role as string
-    // Supervisor, Project_Manager, and Dept_Head don't have access to Users page
-    return role !== Role.Staff && role !== Role.Non_Staff && role !== Role.Supervisor && role !== Role.Project_Manager && role !== Role.Dept_Head
-  }, [profile?.role])
+    if (!profile?.permissionLevel) return false
+    // Only users with FULL_ACCESS can view all users
+    return canManageUsers(profile.permissionLevel)
+  }, [profile])
 
-  const { data: usersData, loading: usersLoading, error: usersError } = useData<any>({
+  const { data: usersData } = useData<User[] | { data?: User[]; users?: User[] }>({
     endpoint: '/users/all',
     immediate: canViewAllUsers, // Only fetch if user has permission
   })
@@ -79,9 +78,9 @@ export default function DashboardPage() {
     }
     // Other roles can see all suggestions
     return '/suggestions'
-  }, [profile?.id, profile?.role])
+  }, [profile])
 
-  const { data: suggestionsData, loading: suggestionsLoading, error: suggestionsError, refetch: refetchSuggestions } = useData<any>({
+  const { data: suggestionsData, loading: suggestionsLoading, error: suggestionsError, refetch: refetchSuggestions } = useData<Suggestion[] | { data?: Suggestion[]; suggestions?: Suggestion[] }>({
     endpoint: suggestionsEndpoint,
     immediate: true,
   })
@@ -102,7 +101,7 @@ export default function DashboardPage() {
       return null
     }
     
-    let extractedData: any = null;
+    let extractedData: Suggestion[] | null = null;
     
     // Handle different response structures
     if (Array.isArray(suggestionsData)) {
@@ -144,7 +143,7 @@ export default function DashboardPage() {
     }
     
     return extractedData;
-  }, [suggestionsData, canViewAllSuggestions, profile?.id])
+  }, [suggestionsData, canViewAllSuggestions, profile])
 
   // Calculate stats from users (only show if user has permission)
   const totalUsersCount = useMemo(() => {
@@ -431,20 +430,20 @@ export default function DashboardPage() {
                     </div>
                   )}
                   
-                  {(profile.department || (profile as any).departement) && (
+                  {(profile.department || ('departement' in profile && (profile as UserProfile & { departement?: string }).departement)) && (
                     <div className="mb-3">
                       <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">Department</p>
                       <p className="text-lg text-slate-700 dark:text-slate-300">
-                        {formatEnumDisplay(profile.department || (profile as any).departement || "")}
+                        {formatEnumDisplay(profile.department || (('departement' in profile && (profile as UserProfile & { departement?: string }).departement) ? String((profile as UserProfile & { departement?: string }).departement) : "") || "")}
                       </p>
                     </div>
                   )}
                   
-                  {(profile.position || (profile as any).posision) && (
+                  {(profile.position || ('posision' in profile && (profile as UserProfile & { posision?: string }).posision)) && (
                     <div className="mb-3">
                       <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">Position</p>
                       <p className="text-lg text-slate-700 dark:text-slate-300">
-                        {formatEnumDisplay(profile.position || (profile as any).posision || "")}
+                        {formatEnumDisplay(profile.position || (('posision' in profile && (profile as UserProfile & { posision?: string }).posision) ? String((profile as UserProfile & { posision?: string }).posision) : "") || "")}
                       </p>
                     </div>
                   )}

@@ -25,7 +25,7 @@ export function useData<T>({
     setLoading(true);
     setError(null);
     try {
-      const result = await apiClient.get<any>(endpoint);
+      const result = await apiClient.get<unknown>(endpoint);
       
       // Handle different possible response structures
       // API response can be: 

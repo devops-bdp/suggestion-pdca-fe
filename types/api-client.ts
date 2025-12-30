@@ -6,8 +6,7 @@ import axios, {
 } from "axios";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ??
-  "https://sugestion-system.vercel.app/api";
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api";
 
 export const AUTH_TOKEN_KEY = "token";
 
@@ -156,23 +155,50 @@ const handleRequest = async <T, D = unknown>(
 const extractErrorMessage = (error: unknown): string => {
   if (axios.isAxiosError(error)) {
     const axiosError = error as AxiosError<{ message?: string; error?: string }>;
-    const responseData = axiosError.response?.data;
+    const responseData: unknown = axiosError.response?.data;
+    const status = axiosError.response?.status;
+    
+    // Check if response is HTML (404 page from Next.js or wrong URL)
+    const htmlString = typeof responseData === "string" ? responseData : "";
+    if (
+      htmlString &&
+      (htmlString.includes("<!DOCTYPE html>") || htmlString.includes("<html"))
+    ) {
+      return `API endpoint not found. Please check:
+1. Backend server is running on ${API_BASE_URL}
+2. NEXT_PUBLIC_API_BASE_URL environment variable is set correctly
+3. Backend routes are properly configured`;
+    }
     
     // Try multiple possible error message fields
-    const errorMessage = 
-      responseData?.message || 
-      responseData?.error ||
-      (typeof responseData === "string" ? responseData : null) ||
-      axiosError.message ||
-      "API request failed";
+    let errorMessage: string;
+    if (responseData && typeof responseData === "object" && "message" in responseData) {
+      errorMessage = String((responseData as { message: unknown }).message);
+    } else if (responseData && typeof responseData === "object" && "error" in responseData) {
+      errorMessage = String((responseData as { error: unknown }).error);
+    } else if (typeof responseData === "string" && !responseData.includes("<!DOCTYPE")) {
+      errorMessage = responseData;
+    } else {
+      errorMessage = axiosError.message || "API request failed";
+    }
+    
+    // For 404 errors, provide helpful message
+    if (status === 404) {
+      return `API endpoint not found: ${axiosError.config?.url}. Please verify the backend server is running and the endpoint exists.`;
+    }
     
     // For 500 errors, return clean message without duplication
-    if (axiosError.response?.status === 500) {
+    if (status === 500) {
       // If error message already contains "Internal server error", return as is
       if (errorMessage.toLowerCase().includes("internal server error")) {
         return errorMessage;
       }
       return `Internal server error: ${errorMessage}`;
+    }
+    
+    // For network errors (ECONNREFUSED, etc.)
+    if (axiosError.code === "ECONNREFUSED" || axiosError.code === "ERR_NETWORK") {
+      return `Cannot connect to backend server at ${API_BASE_URL}. Please ensure the backend is running.`;
     }
     
     return errorMessage;

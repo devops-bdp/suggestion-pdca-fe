@@ -47,6 +47,17 @@ export const showConfirm = (
   variant: "default" | "destructive" | "warning" | "info" | "success" = "default"
 ): Promise<boolean> => {
   return new Promise((resolve) => {
+    // Map variant to button styles
+    const variantStyles = {
+      default: "bg-primary text-primary-foreground hover:bg-primary/90",
+      destructive: "bg-red-600 text-white hover:bg-red-700",
+      warning: "bg-yellow-600 text-white hover:bg-yellow-700",
+      info: "bg-blue-600 text-white hover:bg-blue-700",
+      success: "bg-green-600 text-white hover:bg-green-700",
+    }
+    
+    const confirmButtonClass = variantStyles[variant] || variantStyles.default
+    
     // Create a temporary dialog element
     const dialog = document.createElement('div')
     dialog.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black/50'
@@ -56,7 +67,7 @@ export const showConfirm = (
         <p class="text-muted-foreground mb-4">${message}</p>
         <div class="flex justify-end gap-2">
           <button class="px-4 py-2 rounded-md border border-border hover:bg-accent" data-action="cancel">Cancel</button>
-          <button class="px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90" data-action="confirm">Confirm</button>
+          <button class="px-4 py-2 rounded-md ${confirmButtonClass}" data-action="confirm">Confirm</button>
         </div>
       </div>
     `

@@ -1,18 +1,16 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useData, useMutation } from '@/types/hooks'
-import { UserProfile, Role } from '@/types/api'
+import { UserProfile } from '@/types/api'
 import { Eye, EyeOff } from 'lucide-react'
 import { showSuccess, showError } from '@/lib/toast'
 
 export default function SettingsPage() {
-  const router = useRouter()
   const { data: currentUser } = useData<UserProfile>({
     endpoint: "/users/profile",
   })
@@ -27,17 +25,15 @@ export default function SettingsPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   // Use dedicated password update endpoint
-  const { mutate: changePassword, loading: updatingPassword } = useMutation<any, any>("post")
+  interface PasswordUpdatePayload {
+    userId: string;
+    currentPassword: string;
+    newPassword: string;
+  }
+  const { mutate: changePassword, loading: updatingPassword } = useMutation<PasswordUpdatePayload, { success?: boolean; message?: string }>("put")
 
-  // Route protection: Staff and Non_Staff cannot access
-  useEffect(() => {
-    if (currentUser?.role) {
-      const userRole = currentUser.role as string
-      if (userRole === Role.Staff || userRole === Role.Non_Staff) {
-        router.replace("/dashboard")
-      }
-    }
-  }, [currentUser, router])
+  // Settings page is accessible to all users - no route protection needed
+  // All users should be able to change their own password
 
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -78,7 +74,7 @@ export default function SettingsPage() {
 
     try {
       // Call dedicated password change endpoint
-      const payload: any = {
+      const payload: PasswordUpdatePayload = {
         userId: currentUser.id,
         currentPassword: passwordData.currentPassword.trim(),
         newPassword: passwordData.newPassword.trim(),
@@ -107,34 +103,48 @@ export default function SettingsPage() {
         confirmPassword: '',
       })
       showSuccess('Password updated successfully!')
-    } catch (err: any) {
+    } catch (err: unknown) {
+      // Type guard for error with response structure
+      interface ErrorWithResponse {
+        response?: {
+          status?: number;
+          data?: {
+            message?: string;
+            error?: string;
+          };
+        };
+        message?: string;
+      }
+      
+      const error = err as ErrorWithResponse;
+      
       console.error('Password update error details:', {
         error: err,
-        response: err?.response,
-        status: err?.response?.status,
-        data: err?.response?.data,
-        message: err?.message
+        response: error?.response,
+        status: error?.response?.status,
+        data: error?.response?.data,
+        message: error?.message
       })
       
       // Extract error message from response
       let errorMessage = 'Failed to update password'
       
-      if (err?.response?.data?.message) {
-        errorMessage = err.response.data.message
-      } else if (err?.response?.data?.error) {
-        errorMessage = err.response.data.error
-      } else if (err?.message) {
-        errorMessage = err.message
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message
+      } else if (error?.response?.data?.error) {
+        errorMessage = error.response.data.error
+      } else if (error?.message) {
+        errorMessage = error.message
       }
       
       // Provide more helpful error messages based on status code
-      if (err?.response?.status === 401 || errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
+      if (error?.response?.status === 401 || errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
         showError('Current password is incorrect or authentication failed. Please verify and try again.')
-      } else if (err?.response?.status === 400 || errorMessage.includes('400') || errorMessage.includes('Bad Request')) {
+      } else if (error?.response?.status === 400 || errorMessage.includes('400') || errorMessage.includes('Bad Request')) {
         showError('Invalid password format or missing required fields. Please check your input and try again.')
-      } else if (err?.response?.status === 404 || errorMessage.includes('404')) {
+      } else if (error?.response?.status === 404 || errorMessage.includes('404')) {
         showError('User not found. Please refresh the page and try again.')
-      } else if (err?.response?.status === 403 || errorMessage.includes('403') || errorMessage.includes('Forbidden')) {
+      } else if (error?.response?.status === 403 || errorMessage.includes('403') || errorMessage.includes('Forbidden')) {
         showError('You do not have permission to change the password.')
       } else {
         showError(errorMessage || 'Failed to update password. Please check the console for details and try again.')
@@ -142,20 +152,8 @@ export default function SettingsPage() {
     }
   }
 
-  if (currentUser?.role) {
-    const userRole = currentUser.role as string
-    if (userRole === Role.Staff || userRole === Role.Non_Staff) {
-      return (
-        <div className="flex items-center justify-center min-h-96">
-          <Card className="p-6">
-            <p className="text-red-600 dark:text-red-400">
-              You don't have permission to access this page.
-            </p>
-          </Card>
-        </div>
-      )
-    }
-  }
+  // Settings page is accessible to all users - no permission check needed
+  // All users should be able to change their own password regardless of permissionLevel
 
   return (
     <div className="space-y-6">

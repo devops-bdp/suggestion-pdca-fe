@@ -186,6 +186,10 @@ export interface Suggestion {
   user?: UserProfile;
   history?: SuggestionHistory[];
   penilaian?: FormPenilaian[];
+  noRegistSS?: string;
+  tanggalUsulan?: string;
+  hubungan?: string;
+  tanggalEfektif?: string;
 }
 
 export interface SuggestionFormData {

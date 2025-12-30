@@ -34,7 +34,6 @@ import {
   Pencil,
   Trash2,
   CheckCircle,
-  XCircle,
   ClipboardCheck,
   Filter,
   ChevronLeft,
@@ -88,24 +87,15 @@ function HistorySection({
       {/* History Cards */}
       <div className="space-y-2 mb-4">
         {currentHistory.map((item) => {
-          // Get user name from history item, with fallback to currentUser
+          // Get user name from history item
           let userName: string | null = null;
           
           if (item.user) {
-            // Use user info from history if available
+            // Use user info from history if available (preferred)
             userName = `${item.user.firstName} ${item.user.lastName}`.trim();
           } else if (item.changedBy && currentUser && currentUser.id === item.changedBy) {
             // Fallback: if changedBy matches current user and no user info in history
             userName = `${currentUser.firstName} ${currentUser.lastName}`.trim();
-          } else if (currentUser) {
-            // Fallback: if no user info at all, use current user for recent items
-            // This handles cases where backend doesn't populate user info
-            // Check if the change was made recently (within last 5 minutes)
-            const changeTime = new Date(item.changedAt).getTime();
-            const isRecent = changeTime > Date.now() - 300000; // Within last 5 minutes
-            if (isRecent) {
-              userName = `${currentUser.firstName} ${currentUser.lastName}`.trim();
-            }
           }
           
           return (
@@ -214,7 +204,7 @@ export default function SubmissionsPage() {
     if (filters.kriteriaSS) params.append("kriteriaSS", filters.kriteriaSS);
     
     return params.toString();
-  }, [filters, canViewAllSubmissions, currentUser?.id, currentUser?.role]);
+  }, [filters, canViewAllSubmissions, currentUser]);
 
   const endpoint = `/suggestions${queryParams ? `?${queryParams}` : ""}`;
 
@@ -276,7 +266,7 @@ export default function SubmissionsPage() {
       }
       return false;
     });
-  }, [suggestionsData, filters.search, canViewAllSubmissions, currentUser?.id]);
+  }, [suggestionsData, filters.search, canViewAllSubmissions, currentUser]);
 
   // Build statistics endpoint - filter by userId for Staff/Non_Staff
   const statisticsEndpoint = useMemo(() => {
@@ -284,7 +274,90 @@ export default function SubmissionsPage() {
       return `/suggestions/statistics?userId=${currentUser.id}`;
     }
     return "/suggestions/statistics";
-  }, [canViewAllSubmissions, currentUser?.id]);
+  }, [canViewAllSubmissions, currentUser]);
+
+  // Helper function to convert month number to Roman numeral
+  const monthToRoman = (month: number): string => {
+    const romanNumerals = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+    return romanNumerals[month] || '';
+  };
+
+  // Generate auto registration number
+  // Use suggestionsData (raw data) instead of suggestions (filtered) for accurate counting
+  // IMPORTANT: This function automatically resets to "01" at the start of each new month
+  const generateRegistNumber = useMemo(() => {
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1; // 1-12
+    const currentYear = now.getFullYear();
+    const monthRoman = monthToRoman(currentMonth);
+    
+    // Use raw suggestionsData instead of filtered suggestions for accurate counting
+    const rawSuggestions = suggestionsData || [];
+    
+    // Default if no suggestions available - always start with 01 for new month
+    if (!Array.isArray(rawSuggestions) || rawSuggestions.length === 0) {
+      return `01/SS-PDCA/${monthRoman}/${currentYear}`;
+    }
+    
+    // Filter suggestions by CURRENT month and year ONLY
+    // This ensures that when month changes, the filter will be different,
+    // resulting in an empty array or only suggestions from the new month,
+    // which will reset maxIndex to 0 and generate "01" for the new month
+    const currentMonthSuggestions = rawSuggestions.filter((s) => {
+      // Try to extract month/year from noRegistSS if available
+      if (s.noRegistSS) {
+        const match = s.noRegistSS.match(/\/([IVX]+)\/(\d{4})$/);
+        if (match) {
+          const suggestionMonth = match[1];
+          const suggestionYear = parseInt(match[2]);
+          // Only include suggestions from the CURRENT month and year
+          // This ensures automatic reset to "01" when month changes
+          return suggestionMonth === monthRoman && suggestionYear === currentYear;
+        }
+      }
+      // Fallback to createdAt date - also filter by current month/year
+      const createdDate = new Date(s.createdAt);
+      return createdDate.getMonth() + 1 === currentMonth && createdDate.getFullYear() === currentYear;
+    });
+    
+    // Get the highest index number from existing suggestions in CURRENT month only
+    // When month changes, currentMonthSuggestions will be empty or contain only new month's data,
+    // so maxIndex will be 0, resulting in "01" for the new month
+    let maxIndex = 0;
+    currentMonthSuggestions.forEach((s) => {
+      if (s.noRegistSS) {
+        const match = s.noRegistSS.match(/^(\d+)\//);
+        if (match) {
+          const index = parseInt(match[1]);
+          if (index > maxIndex) {
+            maxIndex = index;
+          }
+        }
+      }
+    });
+    
+    // Generate next index (pad with zero)
+    // For new month: maxIndex = 0, so nextIndex = "01"
+    // For same month: maxIndex = highest existing, so nextIndex = maxIndex + 1
+    const nextIndex = String(maxIndex + 1).padStart(2, '0');
+    
+    if (process.env.NODE_ENV === "development") {
+      console.log("[GenerateRegistNumber]", {
+        currentMonth,
+        monthRoman,
+        currentYear,
+        totalSuggestions: rawSuggestions.length,
+        currentMonthSuggestions: currentMonthSuggestions.length,
+        suggestionsWithRegist: currentMonthSuggestions.filter((s) => s.noRegistSS).length,
+        maxIndex,
+        nextIndex,
+        generated: `${nextIndex}/SS-PDCA/${monthRoman}/${currentYear}`,
+        note: "Auto-resets to 01 at start of each new month",
+      });
+    }
+    
+    return `${nextIndex}/SS-PDCA/${monthRoman}/${currentYear}`;
+  }, [suggestionsData]);
 
   const { data: statisticsData, loading: statisticsLoading } = useData<{ success: boolean; data: SuggestionStatistics } | SuggestionStatistics>({
     endpoint: statisticsEndpoint,
@@ -294,22 +367,22 @@ export default function SubmissionsPage() {
 
   const { mutate: createSuggestion, loading: creating } = useMutation<
     SuggestionFormData,
-    any
+    Suggestion
   >("post");
   const { mutate: updateSuggestion, loading: updating } = useMutation<
     Partial<SuggestionFormData>,
-    any
+    Suggestion
   >("put");
   const { mutate: deleteSuggestion, loading: deleting } = useMutation<
-    any,
-    any
+    { id: string },
+    void
   >("delete");
   const { mutate: updateStatus, loading: updatingStatus } = useMutation<
     SuggestionStatusUpdate,
-    any
+    Suggestion
   >("put");
   const { mutate: submitPenilaian, loading: submittingPenilaian } =
-    useMutation<PenilaianFormData, any>("post");
+    useMutation<PenilaianFormData, Suggestion>("post");
 
   // Enum options
   const statusOptions = useMemo(() => Object.values(StatusIde), []);
@@ -336,7 +409,6 @@ export default function SubmissionsPage() {
     ideProsesPerbaikan: "",
     hasilUraianProses: "",
     evaluasiIde: "",
-    komentarAtasan: "",
     fotoSebelum: "",
     fotoSesudah: "",
     kriteriaSS: "",
@@ -371,13 +443,12 @@ export default function SubmissionsPage() {
       ideProsesPerbaikan: "",
       hasilUraianProses: "",
       evaluasiIde: "",
-      komentarAtasan: "",
       fotoSebelum: "",
       fotoSesudah: "",
       kriteriaSS: "",
       sifatPerbaikan: "",
       userId: currentUser?.id || "",
-      noRegistSS: "",
+      noRegistSS: generateRegistNumber,
       tanggalUsulan: new Date().toISOString().split("T")[0],
       hubungan: "",
       tanggalEfektif: "",
@@ -387,14 +458,27 @@ export default function SubmissionsPage() {
   // Set current user ID when available
   useEffect(() => {
     if (currentUser?.id && !formData.userId) {
-      setFormData((prev) => ({ ...prev, userId: currentUser.id }));
+      // Use setTimeout to avoid cascading renders
+      setTimeout(() => {
+        setFormData((prev) => ({ ...prev, userId: currentUser.id }));
+      }, 0);
     }
-  }, [currentUser]);
+  }, [currentUser, formData.userId]);
 
   // Handlers
-  const handleOpenCreate = () => {
+  const handleOpenCreate = async () => {
+    // Refetch suggestions first to get latest data for accurate registration number
+    await refetch();
     resetForm();
     setIsCreateDialogOpen(true);
+    // Auto-generate registration number when opening create dialog
+    // Use setTimeout to avoid cascading renders and ensure suggestions data is loaded
+    setTimeout(() => {
+      setFormData((prev) => ({
+        ...prev,
+        noRegistSS: generateRegistNumber,
+      }));
+    }, 200);
   };
 
   const handleOpenEdit = (suggestion: Suggestion) => {
@@ -471,12 +555,37 @@ export default function SubmissionsPage() {
     }
 
     try {
-      await createSuggestion("/suggestions", formData);
+      // Remove komentarAtasan from create payload (should only be in scoring menu)
+      const createPayload: Omit<SuggestionFormData, 'komentarAtasan'> = {
+        judulIde: formData.judulIde,
+        masalahYangDihadapi: formData.masalahYangDihadapi,
+        uraianIde: formData.uraianIde,
+        ideProsesPerbaikan: formData.ideProsesPerbaikan,
+        hasilUraianProses: formData.hasilUraianProses,
+        evaluasiIde: formData.evaluasiIde,
+        fotoSebelum: formData.fotoSebelum,
+        fotoSesudah: formData.fotoSesudah,
+        kriteriaSS: formData.kriteriaSS,
+        sifatPerbaikan: formData.sifatPerbaikan,
+        userId: formData.userId,
+        noRegistSS: formData.noRegistSS || generateRegistNumber,
+        tanggalUsulan: formData.tanggalUsulan,
+        hubungan: formData.hubungan,
+        tanggalEfektif: formData.tanggalEfektif,
+      };
+      await createSuggestion("/suggestions", createPayload);
       showSuccess("Suggestion created successfully!");
       setIsCreateDialogOpen(false);
       resetForm();
-      refetch();
-      setTimeout(() => refetch(), 1000);
+      // Refetch immediately and multiple times to ensure data is updated
+      await refetch();
+      // Wait a bit for data to be fully updated, then refetch again
+      setTimeout(async () => {
+        await refetch();
+      }, 500);
+      setTimeout(async () => {
+        await refetch();
+      }, 1500);
     } catch (err) {
       showError(
         err instanceof Error ? err.message : "Failed to create suggestion"
@@ -948,7 +1057,24 @@ export default function SubmissionsPage() {
       )}
 
       {/* Create Dialog */}
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+      <Dialog 
+        open={isCreateDialogOpen} 
+        onOpenChange={(open) => {
+          setIsCreateDialogOpen(open);
+          if (open) {
+            // When dialog opens, refetch to get latest suggestions data
+            refetch().then(() => {
+              // Wait a bit for useMemo to recalculate with new data
+              setTimeout(() => {
+                setFormData((prev) => ({
+                  ...prev,
+                  noRegistSS: generateRegistNumber,
+                }));
+              }, 200);
+            });
+          }
+        }}
+      >
         <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto p-6 md:p-8 gap-6 rounded-xl border-2 border-slate-200 dark:border-slate-700 shadow-2xl">
           <DialogHeader className="pb-2">
             <DialogTitle className="text-center text-xl md:text-2xl font-bold">
@@ -962,19 +1088,24 @@ export default function SubmissionsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
               {/* Left Column */}
               <div className="space-y-4 md:space-y-6">
-                {/* No. Regist SS */}
+                {/* No. Regist SS - Auto-generated */}
                 <div className="space-y-2">
                   <Label htmlFor="noRegistSS" className="font-semibold">
                     No. Regist SS
                   </Label>
                   <Input
                     id="noRegistSS"
-                    value={formData.noRegistSS}
+                    value={formData.noRegistSS || generateRegistNumber}
                     onChange={(e) =>
                       setFormData({ ...formData, noRegistSS: e.target.value })
                     }
-                    placeholder="01/SS-PDCA/IX/2025"
+                    placeholder={generateRegistNumber}
+                    readOnly
+                    className="bg-slate-50 dark:bg-slate-800 text-sm text-slate-600 dark:text-slate-400 cursor-not-allowed"
                   />
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Nomor registrasi otomatis di-generate berdasarkan bulan dan tahun saat ini
+                  </p>
                 </div>
 
                 {/* Kriteria SS */}
@@ -1265,24 +1396,6 @@ export default function SubmissionsPage() {
                   />
                 </div>
 
-                {/* Komentar Atasan */}
-                <div className="space-y-2">
-                  <Label htmlFor="komentarAtasan" className="font-semibold text-sm md:text-base">
-                    Komentar Atasan
-                  </Label>
-                  <textarea
-                    id="komentarAtasan"
-                    value={formData.komentarAtasan}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        komentarAtasan: e.target.value,
-                      })
-                    }
-                    className="flex min-h-[100px] md:min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y"
-                    placeholder="*Jika diperlukan detail penjelasan atau foto/sketsa dilampirkan di lampiran"
-                  />
-                </div>
 
                 {/* Foto Sebelum & Sesudah */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1551,42 +1664,56 @@ export default function SubmissionsPage() {
           {selectedSuggestion && (
             <div className="px-3 md:px-6 py-2.5 md:py-4 space-y-2.5 md:space-y-3">
               {/* Status and Basic Info */}
-              <div className="grid grid-cols-2 md:flex md:flex-wrap items-start gap-2 md:gap-4 pb-2 md:pb-3 border-b">
-                <div className="shrink-0">
-                  <Label className="text-xs text-slate-500 dark:text-slate-400">Status</Label>
-                  <div className="mt-0.5 md:mt-1">
-                    <span
-                      className={`inline-flex items-center px-2 md:px-3 py-0.5 md:py-1 rounded-full text-xs font-medium ${getStatusColor(
-                        selectedSuggestion.statusIde
-                      )}`}
-                    >
-                      {formatEnumDisplay(selectedSuggestion.statusIde)}
-                    </span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 pb-2 md:pb-3 border-b">
+                {/* Left Section: No. Regist SS and Submitted By */}
+                <div className="space-y-3">
+                  {selectedSuggestion.noRegistSS && (
+                    <div>
+                      <Label className="text-xs text-slate-500 dark:text-slate-400">No. Regist SS</Label>
+                      <p className="mt-0.5 md:mt-1 text-xs md:text-sm font-medium text-slate-600 dark:text-slate-400">
+                        {selectedSuggestion.noRegistSS}
+                      </p>
+                    </div>
+                  )}
+                  {selectedSuggestion.user && (
+                    <div>
+                      <Label className="text-xs text-slate-500 dark:text-slate-400">Submitted By</Label>
+                      <p className="mt-0.5 md:mt-1 text-xs md:text-sm font-medium text-slate-900 dark:text-slate-100">
+                        {selectedSuggestion.user.firstName} {selectedSuggestion.user.lastName}
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        NRP: {selectedSuggestion.user.nrp}
+                      </p>
+                    </div>
+                  )}
+                </div>
+                {/* Right Section: Status, Kriteria SS, Sifat Perbaikan */}
+                <div className="space-y-3">
+                  <div>
+                    <Label className="text-xs text-slate-500 dark:text-slate-400">Status</Label>
+                    <div className="mt-0.5 md:mt-1">
+                      <span
+                        className={`inline-flex items-center px-2 md:px-3 py-0.5 md:py-1 rounded-full text-xs font-medium ${getStatusColor(
+                          selectedSuggestion.statusIde
+                        )}`}
+                      >
+                        {formatEnumDisplay(selectedSuggestion.statusIde)}
+                      </span>
+                    </div>
                   </div>
-                </div>
-                <div className="shrink-0">
-                  <Label className="text-xs text-slate-500 dark:text-slate-400">Kriteria SS</Label>
-                  <p className="mt-0.5 md:mt-1 text-xs md:text-sm font-medium text-slate-900 dark:text-slate-100">
-                    {formatEnumDisplay(selectedSuggestion.kriteriaSS)}
-                  </p>
-                </div>
-                <div className="shrink-0 col-span-2 md:col-span-1">
-                  <Label className="text-xs text-slate-500 dark:text-slate-400">Sifat Perbaikan</Label>
-                  <p className="mt-0.5 md:mt-1 text-xs md:text-sm font-medium text-slate-900 dark:text-slate-100">
-                    {formatEnumDisplay(selectedSuggestion.sifatPerbaikan)}
-                  </p>
-                </div>
-                {selectedSuggestion.user && (
-                  <div className="col-span-2 md:col-span-1 md:ml-auto shrink-0 w-full md:w-auto">
-                    <Label className="text-xs text-slate-500 dark:text-slate-400">Submitted By</Label>
+                  <div>
+                    <Label className="text-xs text-slate-500 dark:text-slate-400">Kriteria SS</Label>
                     <p className="mt-0.5 md:mt-1 text-xs md:text-sm font-medium text-slate-900 dark:text-slate-100">
-                      {selectedSuggestion.user.firstName} {selectedSuggestion.user.lastName}
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      NRP: {selectedSuggestion.user.nrp}
+                      {formatEnumDisplay(selectedSuggestion.kriteriaSS)}
                     </p>
                   </div>
-                )}
+                  <div>
+                    <Label className="text-xs text-slate-500 dark:text-slate-400">Sifat Perbaikan</Label>
+                    <p className="mt-0.5 md:mt-1 text-xs md:text-sm font-medium text-slate-900 dark:text-slate-100">
+                      {formatEnumDisplay(selectedSuggestion.sifatPerbaikan)}
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {/* Content Sections - More Compact */}

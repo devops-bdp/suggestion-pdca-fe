@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { useData, useMutation } from "@/types/hooks";
 import { User, UserFormData, Role, Department, Position, PermissionLevel, UserProfile } from "@/types/api";
-import { formatEnumDisplay } from "@/types/utils";
+import { formatEnumDisplay, canManageUsers } from "@/types/utils";
 import { Plus, Pencil, Trash2, Filter, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { showSuccess, showError } from "@/lib/toast";
 import { useConfirm } from "@/lib/use-confirm";
@@ -46,11 +46,10 @@ export default function UsersPage() {
     endpoint: "/users/profile",
   });
 
-  // Route protection: Staff and Non_Staff cannot access
+  // Route protection: Only users with FULL_ACCESS can manage users
   useEffect(() => {
-    if (currentUser?.role) {
-      const userRole = currentUser.role as string;
-      if (userRole === Role.Staff || userRole === Role.Non_Staff) {
+    if (currentUser?.permissionLevel) {
+      if (!canManageUsers(currentUser.permissionLevel)) {
         router.replace("/dashboard");
       }
     }
@@ -64,9 +63,9 @@ export default function UsersPage() {
     }
   }, [users]);
 
-  const { mutate: createUser, loading: creating } = useMutation<UserFormData, any>("post");
-  const { mutate: updateUser, loading: updating } = useMutation<UserFormData, any>("put");
-  const { mutate: deleteUser, loading: deleting } = useMutation<any, any>("delete");
+  const { mutate: createUser, loading: creating } = useMutation<UserFormData, User>("post");
+  const { mutate: updateUser, loading: updating } = useMutation<UserFormData, User>("put");
+  const { mutate: deleteUser, loading: deleting } = useMutation<{ id: string }, void>("delete");
 
   // Get enum values from types (from Prisma schema)
   const roleOptions = useMemo(() => Object.values(Role), []);
@@ -113,9 +112,27 @@ export default function UsersPage() {
   const endIndex = startIndex + itemsPerPage;
   const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
 
-  // Reset to page 1 when filters change
+  // Track previous filter values to detect changes
+  const prevFiltersRef = useRef(filters);
+  
+  // Reset page when filters change - using ref to avoid cascading renders
   useEffect(() => {
-    setCurrentPage(1);
+    const filtersChanged = 
+      prevFiltersRef.current.role !== filters.role ||
+      prevFiltersRef.current.department !== filters.department ||
+      prevFiltersRef.current.position !== filters.position ||
+      prevFiltersRef.current.search !== filters.search;
+    
+    if (filtersChanged) {
+      prevFiltersRef.current = filters;
+      // Use setTimeout to avoid cascading renders
+      setTimeout(() => {
+        setCurrentPage(1);
+      }, 0);
+    } else {
+      prevFiltersRef.current = filters;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.role, filters.department, filters.position, filters.search]);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -151,6 +168,11 @@ export default function UsersPage() {
 
   const handleOpenEdit = (user: User) => {
     setEditingUser(user);
+    // Auto-set permissionLevel to SUBMITTER for Staff and Non_Staff
+    const defaultPermissionLevel = (user.role === Role.Staff || user.role === Role.Non_Staff) 
+      ? PermissionLevel.SUBMITTER 
+      : (user.permissionLevel || "");
+    
     setFormData({
       firstName: user.firstName,
       lastName: user.lastName,
@@ -159,7 +181,7 @@ export default function UsersPage() {
       role: user.role,
       department: user.department || "",
       position: user.position || "",
-      permissionLevel: user.permissionLevel || "",
+      permissionLevel: defaultPermissionLevel,
     });
     setIsDialogOpen(true);
   };
@@ -175,9 +197,10 @@ export default function UsersPage() {
     try {
       if (editingUser) {
         // Update user - use /users/:id endpoint
-        const payload: any = {
+        const payload: UserFormData = {
           firstName: formData.firstName,
           lastName: formData.lastName,
+          nrp: formData.nrp,
           role: formData.role,
         };
 
@@ -188,16 +211,44 @@ export default function UsersPage() {
         if (formData.position && formData.position.trim()) {
           payload.position = formData.position;
         }
-        if (formData.permissionLevel && formData.permissionLevel.trim()) {
-          payload.permissionLevel = formData.permissionLevel;
+        // Auto-set permissionLevel based on role
+        // Staff and Non_Staff always get SUBMITTER
+        if (formData.role === Role.Staff || formData.role === Role.Non_Staff) {
+          payload.permissionLevel = PermissionLevel.SUBMITTER;
+          console.log("✅ [Frontend] Auto-setting permissionLevel to SUBMITTER for Staff/Non_Staff");
+        } else if (formData.permissionLevel && formData.permissionLevel.trim()) {
+          // For other roles, use the selected permissionLevel
+          payload.permissionLevel = formData.permissionLevel.trim();
+          console.log("✅ [Frontend] Including permissionLevel in payload:", payload.permissionLevel);
         }
         // Only include password if it's provided (for update)
         if (formData.password && formData.password.trim()) {
           payload.password = formData.password;
         }
 
-        console.log("Updating user:", editingUser.id, payload);
-        await updateUser(`/users/${editingUser.id}`, payload);
+        console.log("📤 Updating user:", editingUser.id);
+        console.log("🔍 formData.permissionLevel value:", formData.permissionLevel);
+        console.log("🔍 formData.permissionLevel type:", typeof formData.permissionLevel);
+        console.log("🔍 formData.permissionLevel truthy check:", !!formData.permissionLevel);
+        console.log("🔍 formData.permissionLevel trim check:", formData.permissionLevel?.trim());
+        console.log("🔍 formData object:", JSON.stringify(formData, null, 2));
+        console.log("📦 Full payload being sent:", JSON.stringify(payload, null, 2));
+        console.log("📦 Payload keys:", Object.keys(payload));
+        console.log("📦 Payload has permissionLevel:", "permissionLevel" in payload);
+        const response = await updateUser(`/users/${editingUser.id}`, payload);
+        console.log("✅ Update response:", response);
+        
+        // Update editingUser with the response data if available
+        if (response && typeof response === 'object' && 'data' in response) {
+          const updatedUserData = response.data as User;
+          console.log("✅ Updated user data from response:", updatedUserData);
+          // Update the editingUser state with the new data
+          setEditingUser({
+            ...editingUser,
+            ...updatedUserData,
+          });
+        }
+        
         showSuccess(`User ${formData.firstName} ${formData.lastName} updated successfully!`);
       } else {
         // Create user - use /auth/register endpoint
@@ -222,7 +273,10 @@ export default function UsersPage() {
         if (formData.position && formData.position.trim()) {
           payload.position = formData.position;
         }
-        if (formData.permissionLevel && formData.permissionLevel.trim()) {
+        // Auto-set permissionLevel to SUBMITTER for Staff and Non_Staff
+        if (formData.role === Role.Staff || formData.role === Role.Non_Staff) {
+          payload.permissionLevel = PermissionLevel.SUBMITTER;
+        } else if (formData.permissionLevel && formData.permissionLevel.trim()) {
           payload.permissionLevel = formData.permissionLevel;
         }
 
@@ -232,13 +286,18 @@ export default function UsersPage() {
       }
       
       console.log("User operation successful");
+      
+      // Close dialog and reset form first
       handleCloseDialog();
       
-      // Refetch immediately and also after a delay to ensure data is updated
+      // Refetch immediately and also after delays to ensure data is updated
       refetch();
       setTimeout(() => {
         refetch();
-      }, 1000);
+      }, 500);
+      setTimeout(() => {
+        refetch();
+      }, 1500);
     } catch (err) {
       console.error("User operation error:", err);
       const message = err instanceof Error ? err.message : "Failed to save user";
@@ -276,21 +335,8 @@ export default function UsersPage() {
     }
   };
 
-  // Check access
-  if (currentUser?.role) {
-    const userRole = currentUser.role as string
-    if (userRole === Role.Staff || userRole === Role.Non_Staff) {
-      return (
-        <div className="flex items-center justify-center min-h-96">
-          <Card className="p-6">
-            <p className="text-red-600 dark:text-red-400">
-              You don't have permission to access this page.
-            </p>
-          </Card>
-        </div>
-      )
-    }
-  }
+  // Check access - using permissionLevel (handled by useEffect above with canManageUsers)
+  // No need for hardcoded role check since permissionLevel is the source of truth
 
   return (
     <div className="space-y-6">
@@ -749,8 +795,9 @@ export default function UsersPage() {
                     id="permissionLevel"
                     value={formData.permissionLevel || ""}
                     onChange={(e) =>
-                      setFormData({ ...formData, permissionLevel: e.target.value || undefined })
+                      setFormData({ ...formData, permissionLevel: e.target.value })
                     }
+                    disabled={formData.role === Role.Staff || formData.role === Role.Non_Staff}
                     className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <option value="">-- Select Permission Level --</option>
@@ -760,6 +807,11 @@ export default function UsersPage() {
                       </option>
                     ))}
                   </select>
+                  {(formData.role === Role.Staff || formData.role === Role.Non_Staff) && (
+                    <p className="text-xs text-muted-foreground">
+                      Staff and Non_Staff always have SUBMITTER permission level
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -829,3 +881,4 @@ export default function UsersPage() {
     </div>
   );
 }
+

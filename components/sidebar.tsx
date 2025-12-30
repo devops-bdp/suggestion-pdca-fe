@@ -18,23 +18,23 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { logout } from "@/types/api-client";
 import { apiClient } from "@/types/api-client";
-import { UserProfile, Role } from "@/types/api";
+import { UserProfile, PermissionLevel } from "@/types/api";
 import { showSuccess } from "@/lib/toast";
 
 interface MenuItem {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   href: string;
-  roles?: string[]; // Roles that can access this menu
+  permissionLevels?: PermissionLevel[]; // Permission levels that can access this menu
 }
 
 const allMenuItems: MenuItem[] = [
-  { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
-  { icon: FileText, label: "Suggestions", href: "/dashboard/suggestions", roles: ["Super_Admin", "Group_Leader", "Staff", "Non_Staff"] },
-  { icon: CheckCircle, label: "Approval", href: "/dashboard/approval", roles: ["Super_Admin", "Supervisor", "Dept_Head", "Project_Manager"] },
-  { icon: ClipboardCheck, label: "Scoring", href: "/dashboard/scoring", roles: ["Super_Admin", "Dept_Head", "Project_Manager"] },
-  { icon: Users, label: "Users", href: "/dashboard/users", roles: ["Super_Admin", "Group_Leader"] },
-  { icon: Settings, label: "Settings", href: "/dashboard/settings" },
+  { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" }, // Available to all
+  { icon: FileText, label: "Suggestions", href: "/dashboard/suggestions", permissionLevels: [PermissionLevel.SUBMITTER, PermissionLevel.FULL_ACCESS] },
+  { icon: CheckCircle, label: "Approval", href: "/dashboard/approval", permissionLevels: [PermissionLevel.APPROVAL_ONLY, PermissionLevel.APPROVAL_SCORING, PermissionLevel.FULL_ACCESS] },
+  { icon: ClipboardCheck, label: "Scoring", href: "/dashboard/scoring", permissionLevels: [PermissionLevel.SCORING_ONLY, PermissionLevel.APPROVAL_SCORING, PermissionLevel.FULL_ACCESS] },
+  { icon: Users, label: "Users", href: "/dashboard/users", permissionLevels: [PermissionLevel.FULL_ACCESS] },
+  { icon: Settings, label: "Settings", href: "/dashboard/settings" }, // Available to all
 ];
 
 function SidebarContent() {
@@ -76,47 +76,31 @@ function SidebarContent() {
     }, 500);
   };
 
-  // Filter menu items based on user role
+  // Filter menu items based on user permissionLevel from database
   const getFilteredMenuItems = () => {
-    if (!user?.role) return allMenuItems.filter(item => !item.roles); // Show only public items if no role
-
-    const userRole = user.role as string;
-    
-    // Staff and Non_Staff can only access Dashboard and Suggestions
-    if (userRole === Role.Staff || userRole === Role.Non_Staff) {
+    // If no user or no permissionLevel, show only public items (Dashboard and Settings)
+    if (!user?.permissionLevel) {
       return allMenuItems.filter(item => 
-        item.href === "/dashboard" || item.href === "/dashboard/suggestions"
+        !item.permissionLevels || item.href === "/dashboard" || item.href === "/dashboard/settings"
       );
     }
 
-    // Supervisor can access Dashboard, Approval, and Settings (not Suggestions, Users, or Scoring)
-    if (userRole === Role.Supervisor) {
-      return allMenuItems.filter(item => {
-        // Always show Dashboard and Settings
-        if (item.href === "/dashboard" || item.href === "/dashboard/settings") return true;
-        // Show items where Supervisor is in the roles array
-        if (item.roles) return item.roles.includes(userRole);
-        // Hide items without roles (except Dashboard and Settings which are already handled)
-        return false;
-      });
-    }
+    const userPermissionLevel = user.permissionLevel as PermissionLevel;
 
-    // Project_Manager and Dept_Head can access Dashboard, Approval, Scoring, and Settings (not Suggestions or Users)
-    if (userRole === Role.Project_Manager || userRole === Role.Dept_Head) {
-      return allMenuItems.filter(item => {
-        // Always show Dashboard and Settings
-        if (item.href === "/dashboard" || item.href === "/dashboard/settings") return true;
-        // Show items where the role is in the roles array
-        if (item.roles) return item.roles.includes(userRole);
-        // Hide items without roles (except Dashboard and Settings which are already handled)
-        return false;
-      });
-    }
-
-    // Other roles: filter based on roles array
+    // Filter menu items based on permissionLevel
     return allMenuItems.filter(item => {
-      if (!item.roles) return true; // Public menu items
-      return item.roles.includes(userRole);
+      // Always show Dashboard and Settings (public items)
+      if (item.href === "/dashboard" || item.href === "/dashboard/settings") {
+        return true;
+      }
+
+      // If menu item has permissionLevels requirement, check if user's permissionLevel is included
+      if (item.permissionLevels) {
+        return item.permissionLevels.includes(userPermissionLevel);
+      }
+
+      // If menu item has no permissionLevels requirement, it's public (already handled above)
+      return false;
     });
   };
 

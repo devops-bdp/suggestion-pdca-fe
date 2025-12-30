@@ -19,10 +19,9 @@ import {
   SuggestionStatusUpdate,
   StatusIde,
   UserProfile,
-  Role,
 } from "@/types/api";
-import { formatEnumDisplay } from "@/types/utils";
-import { CheckCircle, XCircle, Search, Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import { formatEnumDisplay, canApprove } from "@/types/utils";
+import { CheckCircle, Search, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { SuggestionHistory } from "@/types/api";
 import { showSuccess, showError } from "@/lib/toast";
@@ -72,19 +71,15 @@ function HistorySection({
       {/* History Cards */}
       <div className="space-y-2 mb-4">
         {currentHistory.map((item) => {
-          // Get user name from history item, with fallback to currentUser
+          // Get user name from history item
           let userName: string | null = null;
           
           if (item.user) {
+            // Use user info from history if available (preferred)
             userName = `${item.user.firstName} ${item.user.lastName}`.trim();
           } else if (item.changedBy && currentUser && currentUser.id === item.changedBy) {
+            // Fallback: if changedBy matches current user and no user info in history
             userName = `${currentUser.firstName} ${currentUser.lastName}`.trim();
-          } else if (currentUser) {
-            const changeTime = new Date(item.changedAt).getTime();
-            const isRecent = changeTime > Date.now() - 300000; // Within last 5 minutes
-            if (isRecent) {
-              userName = `${currentUser.firstName} ${currentUser.lastName}`.trim();
-            }
           }
           
           return (
@@ -175,20 +170,13 @@ export default function ApprovalPage() {
 
   const { mutate: updateStatus, loading: updatingStatus } = useMutation<
     SuggestionStatusUpdate,
-    any
+    Suggestion
   >("put");
 
-  // Check access
+  // Check access based on permissionLevel
   useEffect(() => {
-    if (currentUser?.role) {
-      const userRole = currentUser.role as string;
-      const allowedRoles = [
-        Role.Super_Admin,
-        Role.Supervisor,
-        Role.Dept_Head,
-        Role.Project_Manager,
-      ];
-      if (!allowedRoles.includes(userRole as Role)) {
+    if (currentUser?.permissionLevel) {
+      if (!canApprove(currentUser.permissionLevel)) {
         router.replace("/dashboard");
       }
     }
@@ -318,20 +306,14 @@ export default function ApprovalPage() {
     );
   }
 
-  const userRole = currentUser.role as string;
-  const allowedRoles = [
-    Role.Super_Admin,
-    Role.Supervisor,
-    Role.Dept_Head,
-    Role.Project_Manager,
-  ];
-
-  if (!allowedRoles.includes(userRole as Role)) {
+  // Check access - using permissionLevel (handled by useEffect above with canApprove)
+  // No need for hardcoded role check since permissionLevel is the source of truth
+  if (currentUser?.permissionLevel && !canApprove(currentUser.permissionLevel)) {
     return (
       <div className="flex items-center justify-center min-h-96">
         <Card className="p-6">
           <p className="text-red-600 dark:text-red-400">
-            You don't have permission to access this page.
+            You don&apos;t have permission to access this page.
           </p>
         </Card>
       </div>

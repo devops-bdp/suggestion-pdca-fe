@@ -16,8 +16,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { apiClient, logout } from "@/types/api-client";
 import { useData } from "@/types/hooks";
-import { UserProfile, Suggestion, Role } from "@/types/api";
-import { formatEnumDisplay } from "@/types/utils";
+import { UserProfile, Suggestion, Role, PermissionLevel } from "@/types/api";
+import { formatEnumDisplay, canManageUsers } from "@/types/utils";
 import { showSuccess } from "@/lib/toast";
 
 export default function Navbar() {
@@ -29,17 +29,18 @@ export default function Navbar() {
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
 
-  // Build endpoint with userId filter for Staff/Non_Staff users
+  // Build endpoint with userId filter based on permissionLevel
   const suggestionsEndpoint = useMemo(() => {
-    if (!user?.role || !user?.id) return "/suggestions";
+    if (!user?.permissionLevel || !user?.id) return "/suggestions";
     
-    const role = user.role as string;
-    // Staff/Non_Staff can only see their own suggestions
-    if (role === Role.Staff || role === Role.Non_Staff) {
+    const permissionLevel = user.permissionLevel as PermissionLevel;
+    // SUBMITTER can only see their own suggestions
+    if (permissionLevel === PermissionLevel.SUBMITTER) {
       return `/suggestions?userId=${user.id}`;
     }
+    // Other permission levels can see all suggestions
     return "/suggestions";
-  }, [user?.role, user?.id]);
+  }, [user?.permissionLevel, user?.id]);
 
   // Fetch suggestions and users for search
   const { data: suggestionsData } = useData<Suggestion[]>({
@@ -47,17 +48,23 @@ export default function Navbar() {
     immediate: searchQuery.trim().length > 0, // Only fetch when there's a search query
   });
 
+  // Only fetch users if user has FULL_ACCESS permission
+  const canSearchUsers = useMemo(() => {
+    if (!user?.permissionLevel) return false;
+    return canManageUsers(user.permissionLevel);
+  }, [user?.permissionLevel]);
+
   const { data: usersData } = useData<any>({
     endpoint: "/users/all",
-    immediate: searchQuery.trim().length > 0 && user?.role !== "Staff" && user?.role !== "Non_Staff", // Only fetch if user has permission
+    immediate: searchQuery.trim().length > 0 && canSearchUsers, // Only fetch if user has FULL_ACCESS
   });
 
-  // Check if user can view all suggestions (Staff/Non_Staff can only see their own)
+  // Check if user can view all suggestions (SUBMITTER can only see their own)
   const canViewAllSuggestions = useMemo(() => {
-    if (!user?.role) return true; // Default to true if role not loaded yet
-    const role = user.role as string;
-    return role !== Role.Staff && role !== Role.Non_Staff;
-  }, [user?.role]);
+    if (!user?.permissionLevel) return true; // Default to true if permissionLevel not loaded yet
+    const permissionLevel = user.permissionLevel as PermissionLevel;
+    return permissionLevel !== PermissionLevel.SUBMITTER;
+  }, [user?.permissionLevel]);
 
   // Extract suggestions array and filter by user role
   const suggestions = useMemo(() => {
@@ -74,7 +81,7 @@ export default function Navbar() {
       }
     }
     
-    // Filter by user role - Staff/Non_Staff can only see their own suggestions
+    // Filter by permissionLevel - SUBMITTER can only see their own suggestions
     if (!canViewAllSuggestions && user?.id) {
       suggestionsArray = suggestionsArray.filter((suggestion: Suggestion) => {
         // Only show suggestions that belong to the current user
@@ -83,9 +90,9 @@ export default function Navbar() {
       });
       
       if (process.env.NODE_ENV === "development") {
-        console.log("[Navbar Search] Filtered suggestions for Staff/Non_Staff:", {
+        console.log("[Navbar Search] Filtered suggestions for SUBMITTER:", {
           userId: user.id,
-          role: user.role,
+          permissionLevel: user.permissionLevel,
           filteredCount: suggestionsArray.length
         });
       }
@@ -106,6 +113,25 @@ export default function Navbar() {
     }
     return [];
   }, [usersData]);
+
+  // Get search placeholder based on permissionLevel
+  const searchPlaceholder = useMemo(() => {
+    if (!user?.permissionLevel) return "Search suggestions, users...";
+    const permissionLevel = user.permissionLevel as PermissionLevel;
+    
+    if (permissionLevel === PermissionLevel.FULL_ACCESS) {
+      return "Search suggestions, users...";
+    } else if (permissionLevel === PermissionLevel.SUBMITTER) {
+      return "Search my suggestions...";
+    } else if (permissionLevel === PermissionLevel.APPROVAL_ONLY) {
+      return "Search suggestions for approval...";
+    } else if (permissionLevel === PermissionLevel.SCORING_ONLY) {
+      return "Search suggestions for scoring...";
+    } else if (permissionLevel === PermissionLevel.APPROVAL_SCORING) {
+      return "Search suggestions for approval & scoring...";
+    }
+    return "Search suggestions...";
+  }, [user?.permissionLevel]);
 
   // Filter search results
   const searchResults = useMemo(() => {
@@ -145,9 +171,9 @@ export default function Navbar() {
 
     return {
       suggestions: filteredSuggestions.slice(0, 5), // Limit to 5 results
-      users: filteredUsers.slice(0, 5), // Limit to 5 results
+      users: canSearchUsers ? filteredUsers.slice(0, 5) : [], // Only show users if user has FULL_ACCESS
     };
-  }, [searchQuery, suggestions, users]);
+  }, [searchQuery, suggestions, users, canSearchUsers]);
 
   // Handle search input change
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -234,7 +260,7 @@ export default function Navbar() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4 z-10" />
             <Input
-              placeholder="Search suggestions, users..."
+              placeholder={searchPlaceholder}
               value={searchQuery}
               onChange={handleSearchChange}
               onFocus={() => setShowSearchResults(searchQuery.trim().length > 0)}
@@ -382,7 +408,7 @@ export default function Navbar() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4 z-10" />
               <Input
-                placeholder="Search suggestions, users..."
+                placeholder={searchPlaceholder}
                 value={searchQuery}
                 onChange={handleSearchChange}
                 onFocus={() => setShowSearchResults(searchQuery.trim().length > 0)}

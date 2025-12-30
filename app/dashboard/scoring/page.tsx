@@ -16,12 +16,10 @@ import {
 import { useData, useMutation } from "@/types/hooks";
 import {
   Suggestion,
-  PenilaianFormData,
   StatusIde,
   UserProfile,
-  Role,
 } from "@/types/api";
-import { formatEnumDisplay } from "@/types/utils";
+import { formatEnumDisplay, canScore } from "@/types/utils";
 import { ClipboardCheck, Search, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { SuggestionHistory } from "@/types/api";
@@ -207,19 +205,15 @@ function HistorySection({
       {/* History Cards */}
       <div className="space-y-2 mb-4">
         {currentHistory.map((item) => {
-          // Get user name from history item, with fallback to currentUser
+          // Get user name from history item
           let userName: string | null = null;
           
           if (item.user) {
+            // Use user info from history if available (preferred)
             userName = `${item.user.firstName} ${item.user.lastName}`.trim();
           } else if (item.changedBy && currentUser && currentUser.id === item.changedBy) {
+            // Fallback: if changedBy matches current user and no user info in history
             userName = `${currentUser.firstName} ${currentUser.lastName}`.trim();
-          } else if (currentUser) {
-            const changeTime = new Date(item.changedAt).getTime();
-            const isRecent = changeTime > Date.now() - 300000; // Within last 5 minutes
-            if (isRecent) {
-              userName = `${currentUser.firstName} ${currentUser.lastName}`.trim();
-            }
           }
           
           return (
@@ -308,19 +302,21 @@ export default function ScoringPage() {
     endpoint: "/users/profile",
   });
 
+  interface MultiplePenilaianPayload {
+    suggestionId: string;
+    penilaianList: Array<{
+      penilaianKriteria: string;
+      skorKriteria: number;
+      komentarPenilaian?: string;
+    }>;
+  }
   const { mutate: submitPenilaian, loading: submittingPenilaian } =
-    useMutation<PenilaianFormData, any>("post");
+    useMutation<MultiplePenilaianPayload, Suggestion>("post");
 
-  // Check access
+  // Check access based on permissionLevel
   useEffect(() => {
-    if (currentUser?.role) {
-      const userRole = currentUser.role as string;
-      const allowedRoles = [
-        Role.Super_Admin,
-        Role.Dept_Head,
-        Role.Project_Manager,
-      ];
-      if (!allowedRoles.includes(userRole as Role)) {
+    if (currentUser?.permissionLevel) {
+      if (!canScore(currentUser.permissionLevel)) {
         router.replace("/dashboard");
       }
     }
@@ -379,21 +375,24 @@ export default function ScoringPage() {
     if (!selectedSuggestion) return;
 
     try {
-      // Submit each criteria score separately
-      const promises = Object.entries(penilaianData).map(([kriteriaId, score]) => {
-        if (score > 0) {
+      // Prepare all penilaian data
+      const penilaianList = Object.entries(penilaianData)
+        .filter(([, score]) => score > 0)
+        .map(([kriteriaId, score]) => {
           const kriteria = kriteriaPenilaian.find((k) => k.id === parseInt(kriteriaId));
-          return submitPenilaian("/suggestions/penilaian", {
-            suggestionId: selectedSuggestion.id,
+          return {
             penilaianKriteria: kriteria?.nama || `Kriteria ${kriteriaId}`,
             skorKriteria: score,
             komentarPenilaian: "",
-          });
-        }
-        return Promise.resolve(null);
+          };
+        });
+
+      // Submit all penilaian at once using the new endpoint
+      await submitPenilaian("/suggestions/penilaian/multiple", {
+        suggestionId: selectedSuggestion.id,
+        penilaianList,
       });
 
-      await Promise.all(promises);
       showSuccess("Penilaian submitted successfully!");
       setIsPenilaianDialogOpen(false);
       setSelectedSuggestion(null);
@@ -486,19 +485,14 @@ export default function ScoringPage() {
     );
   }
 
-  const userRole = currentUser.role as string;
-  const allowedRoles = [
-    Role.Super_Admin,
-    Role.Dept_Head,
-    Role.Project_Manager,
-  ];
-
-  if (!allowedRoles.includes(userRole as Role)) {
+  // Check access - using permissionLevel (handled by useEffect above with canScore)
+  // No need for hardcoded role check since permissionLevel is the source of truth
+  if (currentUser?.permissionLevel && !canScore(currentUser.permissionLevel)) {
     return (
       <div className="flex items-center justify-center min-h-96">
         <Card className="p-6">
           <p className="text-red-600 dark:text-red-400">
-            You don't have permission to access this page.
+            {`You don't have permission to access this page.`}
           </p>
         </Card>
       </div>
@@ -763,7 +757,7 @@ export default function ScoringPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {kriteriaPenilaian.map((kriteria, index) => (
+                      {kriteriaPenilaian.map((kriteria) => (
                         <tr key={kriteria.id} className="hover:bg-slate-50 dark:hover:bg-slate-800">
                           <td className="border p-2 text-center">{kriteria.id}</td>
                           <td className="border p-2 font-medium">

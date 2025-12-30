@@ -1,3 +1,5 @@
+/* Tailwind CSS v4 directives - @apply, @custom-variant, and @theme are valid Tailwind syntax */
+/* CSS linter warnings for these directives can be safely ignored */
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -150,7 +152,7 @@
 
 /* Custom Toast Styles sesuai dengan Theme */
 .Toastify__toast {
-  @apply !rounded-lg !shadow-lg !font-sans;
+  @apply rounded-lg! shadow-lg! font-sans!;
   border-radius: var(--radius-lg) !important;
   font-family: var(--font-outfit) !important;
 }
