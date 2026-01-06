@@ -129,7 +129,7 @@ export default function UsersPage() {
       prevFiltersRef.current = filters;
       // Use setTimeout to avoid cascading renders
       setTimeout(() => {
-        setCurrentPage(1);
+    setCurrentPage(1);
       }, 0);
     } else {
       prevFiltersRef.current = filters;
@@ -687,8 +687,8 @@ export default function UsersPage() {
         <Card className="p-12 flex items-center justify-center min-h-96">
           <div className="text-center">
             <p className="text-slate-500 dark:text-slate-400 text-lg mb-4">
-              No users found
-            </p>
+            No users found
+          </p>
             <Button onClick={handleOpenCreate} className="gap-2 cursor-pointer">
               <Plus className="h-4 w-4" />
               Add First User

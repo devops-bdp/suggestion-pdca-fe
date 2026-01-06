@@ -889,43 +889,57 @@ export default function ScoringPage() {
           </DialogHeader>
           {selectedSuggestion && (
             <div className="px-3 md:px-6 py-2.5 md:py-4 space-y-2.5 md:space-y-3">
-              {/* Status and Basic Info */}
-              <div className="grid grid-cols-2 md:flex md:flex-wrap items-start gap-2 md:gap-4 pb-2 md:pb-3 border-b">
-                <div className="shrink-0">
-                  <Label className="text-xs text-slate-500 dark:text-slate-400">Status</Label>
-                  <div className="mt-0.5 md:mt-1">
-                    <span
-                      className={`inline-flex items-center px-2 md:px-3 py-0.5 md:py-1 rounded-full text-xs font-medium ${getStatusColor(
-                        selectedSuggestion.statusIde
-                      )}`}
-                    >
-                      {formatEnumDisplay(selectedSuggestion.statusIde)}
-                    </span>
+              {/* Status and Basic Info - Grid Layout */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 pb-2 md:pb-3 border-b">
+                {/* Left Section */}
+                <div className="space-y-2 md:space-y-3">
+                  {selectedSuggestion.noRegistSS && (
+                    <div>
+                      <Label className="text-xs text-slate-500 dark:text-slate-400">No. Regist SS</Label>
+                      <p className="mt-0.5 md:mt-1 text-xs md:text-sm font-medium text-slate-600 dark:text-slate-400">
+                        {selectedSuggestion.noRegistSS}
+                      </p>
+                    </div>
+                  )}
+                  {selectedSuggestion.user && (
+                    <div>
+                      <Label className="text-xs text-slate-500 dark:text-slate-400">Submitted By</Label>
+                      <p className="mt-0.5 md:mt-1 text-xs md:text-sm font-medium text-slate-900 dark:text-slate-100">
+                        {selectedSuggestion.user.firstName} {selectedSuggestion.user.lastName}
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        NRP: {selectedSuggestion.user.nrp}
+                      </p>
+                    </div>
+                  )}
+                </div>
+                {/* Right Section */}
+                <div className="space-y-2 md:space-y-3">
+                  <div>
+                    <Label className="text-xs text-slate-500 dark:text-slate-400">Status</Label>
+                    <div className="mt-0.5 md:mt-1">
+                      <span
+                        className={`inline-flex items-center px-2 md:px-3 py-0.5 md:py-1 rounded-full text-xs font-medium ${getStatusColor(
+                          selectedSuggestion.statusIde
+                        )}`}
+                      >
+                        {formatEnumDisplay(selectedSuggestion.statusIde)}
+                      </span>
+                    </div>
                   </div>
-                </div>
-                <div className="shrink-0">
-                  <Label className="text-xs text-slate-500 dark:text-slate-400">Kriteria SS</Label>
-                  <p className="mt-0.5 md:mt-1 text-xs md:text-sm font-medium text-slate-900 dark:text-slate-100">
-                    {formatEnumDisplay(selectedSuggestion.kriteriaSS)}
-                  </p>
-                </div>
-                <div className="shrink-0 col-span-2 md:col-span-1">
-                  <Label className="text-xs text-slate-500 dark:text-slate-400">Sifat Perbaikan</Label>
-                  <p className="mt-0.5 md:mt-1 text-xs md:text-sm font-medium text-slate-900 dark:text-slate-100">
-                    {formatEnumDisplay(selectedSuggestion.sifatPerbaikan)}
-                  </p>
-                </div>
-                {selectedSuggestion.user && (
-                  <div className="col-span-2 md:col-span-1 md:ml-auto shrink-0 w-full md:w-auto">
-                    <Label className="text-xs text-slate-500 dark:text-slate-400">Submitted By</Label>
+                  <div>
+                    <Label className="text-xs text-slate-500 dark:text-slate-400">Kriteria SS</Label>
                     <p className="mt-0.5 md:mt-1 text-xs md:text-sm font-medium text-slate-900 dark:text-slate-100">
-                      {selectedSuggestion.user.firstName} {selectedSuggestion.user.lastName}
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      NRP: {selectedSuggestion.user.nrp}
+                      {formatEnumDisplay(selectedSuggestion.kriteriaSS)}
                     </p>
                   </div>
-                )}
+                  <div>
+                    <Label className="text-xs text-slate-500 dark:text-slate-400">Sifat Perbaikan</Label>
+                    <p className="mt-0.5 md:mt-1 text-xs md:text-sm font-medium text-slate-900 dark:text-slate-100">
+                      {formatEnumDisplay(selectedSuggestion.sifatPerbaikan)}
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {/* Content Sections */}
