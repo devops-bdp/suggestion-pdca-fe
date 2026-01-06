@@ -913,7 +913,7 @@ export default function ScoringPage() {
                     </div>
                   )}
                 </div>
-                {/* Right Section */}
+                {/* Right Section: Status, Kriteria SS, Sifat Perbaikan */}
                 <div className="space-y-2 md:space-y-3">
                   <div>
                     <Label className="text-xs text-slate-500 dark:text-slate-400">Status</Label>
