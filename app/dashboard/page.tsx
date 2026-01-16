@@ -281,7 +281,7 @@ export default function DashboardPage() {
           <p className="text-red-600 dark:text-red-400 mb-4">{profileError?.message}</p>
           <button
             onClick={refetchProfile}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition cursor-pointer"
           >
             Try Again
           </button>
@@ -320,8 +320,8 @@ export default function DashboardPage() {
                     {stats?.totalSuggestions ?? (suggestions && Array.isArray(suggestions) ? suggestions.length : 0) ?? 0}
                   </p>
                 </div>
-                <div className="p-3 bg-green-100 dark:bg-green-900 rounded-lg">
-                  <BarChart3 className="h-6 w-6 text-green-600 dark:text-green-400" />
+                <div className="p-3 bg-purple-100 dark:bg-purple-900 rounded-lg">
+                  <BarChart3 className="h-6 w-6 text-purple-600 dark:text-purple-400" />
                 </div>
               </div>
             </Card>
@@ -354,8 +354,8 @@ export default function DashboardPage() {
                     {stats?.resolvedSuggestions ?? (suggestions && Array.isArray(suggestions) ? suggestions.filter(s => s.statusIde === StatusIde.DINILAI).length : 0) ?? 0}
                   </p>
                 </div>
-                <div className="p-3 bg-purple-100 dark:bg-purple-900 rounded-lg">
-                  <CheckCircle2 className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                <div className="p-3 bg-green-100 dark:bg-green-900 rounded-lg">
+                  <CheckCircle2 className="h-6 w-6 text-green-600 dark:text-green-400" />
                 </div>
               </div>
             </Card>
@@ -455,7 +455,7 @@ export default function DashboardPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => setChartType('pie')}
-                        className={`h-8 px-3 ${chartType === 'pie' ? 'bg-white dark:bg-slate-700' : ''}`}
+                        className={`h-8 px-3 cursor-pointer ${chartType === 'pie' ? 'bg-white dark:bg-slate-700' : ''}`}
                       >
                         <PieChart className="h-4 w-4" />
                       </Button>
@@ -464,7 +464,7 @@ export default function DashboardPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => setChartType('line')}
-                        className={`h-8 px-3 ${chartType === 'line' ? 'bg-white dark:bg-slate-700' : ''}`}
+                        className={`h-8 px-3 cursor-pointer ${chartType === 'line' ? 'bg-white dark:bg-slate-700' : ''}`}
                       >
                         <LineChart className="h-4 w-4" />
                       </Button>
@@ -473,7 +473,7 @@ export default function DashboardPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => setChartType('bar')}
-                        className={`h-8 px-3 ${chartType === 'bar' ? 'bg-white dark:bg-slate-700' : ''}`}
+                        className={`h-8 px-3 cursor-pointer ${chartType === 'bar' ? 'bg-white dark:bg-slate-700' : ''}`}
                       >
                         <BarChart3 className="h-4 w-4" />
                       </Button>
@@ -509,6 +509,7 @@ export default function DashboardPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => refetchSuggestions()}
+                        className="cursor-pointer"
                       >
                         Retry
                       </Button>
@@ -521,6 +522,7 @@ export default function DashboardPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => refetchSuggestions()}
+                        className="cursor-pointer"
                       >
                         Retry
                       </Button>

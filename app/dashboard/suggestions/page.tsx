@@ -31,6 +31,7 @@ import {
 } from "@/types/api";
 import { formatEnumDisplay } from "@/types/utils";
 import { showSuccess, showError } from "@/lib/toast";
+import { exportSuggestionToExcel, exportSuggestionToPDF } from "@/lib/export-suggestion";
 import { useConfirm } from "@/lib/use-confirm";
 import {
   Plus,
@@ -42,6 +43,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
+  FileSpreadsheet,
+  FileText,
 } from "lucide-react";
 import { SuggestionHistory } from "@/types/api";
 
@@ -1870,6 +1873,41 @@ export default function SubmissionsPage() {
                     </p>
                   </div>
                 )}
+                {/* Foto Sebelum & Sesudah */}
+                {(selectedSuggestion.fotoSebelum || selectedSuggestion.fotoSesudah) && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                    {selectedSuggestion.fotoSebelum && (
+                      <div>
+                        <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Foto Sebelum</Label>
+                        <div className="mt-1">
+                          <img 
+                            src={selectedSuggestion.fotoSebelum} 
+                            alt="Foto Sebelum" 
+                            className="w-full h-auto rounded-md border border-slate-200 dark:border-slate-700"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                    {selectedSuggestion.fotoSesudah && (
+                      <div>
+                        <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Foto Sesudah</Label>
+                        <div className="mt-1">
+                          <img 
+                            src={selectedSuggestion.fotoSesudah} 
+                            alt="Foto Sesudah" 
+                            className="w-full h-auto rounded-md border border-slate-200 dark:border-slate-700"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Penilaian Section */}
@@ -1900,10 +1938,31 @@ export default function SubmissionsPage() {
               )}
             </div>
           )}
-          <DialogFooter className="px-3 md:px-6 py-2.5 md:py-4 border-t bg-slate-50 dark:bg-slate-900 sticky bottom-0">
-            <Button variant="outline" onClick={() => setIsViewDialogOpen(false)} className="w-full md:w-auto text-sm md:text-base cursor-pointer">
+          <DialogFooter className="px-3 md:px-6 py-2.5 md:py-4 border-t bg-slate-50 dark:bg-slate-900 sticky bottom-0 flex flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setIsViewDialogOpen(false)} className="w-full sm:w-auto text-sm md:text-base cursor-pointer">
               Close
             </Button>
+            {/* Show export buttons only for APPROVE or DINILAI status */}
+            {selectedSuggestion && (selectedSuggestion.statusIde === StatusIde.APPROVE || selectedSuggestion.statusIde === StatusIde.DINILAI) && (
+              <>
+                <Button 
+                  variant="outline" 
+                  onClick={() => exportSuggestionToExcel(selectedSuggestion)} 
+                  className="w-full sm:w-auto text-sm md:text-base cursor-pointer"
+                >
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  Export Excel
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => exportSuggestionToPDF(selectedSuggestion)} 
+                  className="w-full sm:w-auto text-sm md:text-base cursor-pointer"
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Export PDF
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -22,10 +22,11 @@ import {
   UserProfile,
 } from "@/types/api";
 import { formatEnumDisplay, canApprove } from "@/types/utils";
-import { CheckCircle, Search, Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import { CheckCircle, Search, Clock, ChevronLeft, ChevronRight, FileSpreadsheet, FileText } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { SuggestionHistory } from "@/types/api";
 import { showSuccess, showError } from "@/lib/toast";
+import { exportSuggestionToExcel, exportSuggestionToPDF } from "@/lib/export-suggestion";
 
 // History Section Component with Pagination
 function HistorySection({ 
@@ -699,6 +700,29 @@ export default function ApprovalPage() {
             >
               Close
             </Button>
+            {/* Show export buttons only for APPROVE or DINILAI status */}
+            {selectedSuggestion && (selectedSuggestion.statusIde === StatusIde.APPROVE || selectedSuggestion.statusIde === StatusIde.DINILAI) && (
+              <>
+                <Button 
+                  variant="outline" 
+                  onClick={() => exportSuggestionToExcel(selectedSuggestion)} 
+                  className="w-full sm:w-auto text-sm md:text-base cursor-pointer"
+                  disabled={updatingStatus}
+                >
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  Export Excel
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => exportSuggestionToPDF(selectedSuggestion)} 
+                  className="w-full sm:w-auto text-sm md:text-base cursor-pointer"
+                  disabled={updatingStatus}
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Export PDF
+                </Button>
+              </>
+            )}
             {/* Only show approve button if status is DIAJUKAN */}
             {selectedSuggestion && selectedSuggestion.statusIde === StatusIde.DIAJUKAN && (
               <Button 

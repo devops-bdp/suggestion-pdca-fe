@@ -87,6 +87,36 @@ function SidebarContent() {
 
     const userPermissionLevel = user.permissionLevel as PermissionLevel;
 
+    // Helper function to check if user has a specific capability
+    const hasCapability = (capability: PermissionLevel): boolean => {
+      // FULL_ACCESS has all capabilities
+      if (userPermissionLevel === PermissionLevel.FULL_ACCESS) {
+        return true;
+      }
+      
+      // Check direct match
+      if (userPermissionLevel === capability) {
+        return true;
+      }
+      
+      // Check combinations
+      // APPROVAL_SCORING means user has both APPROVAL_ONLY and SCORING_ONLY capabilities
+      if (userPermissionLevel === PermissionLevel.APPROVAL_SCORING) {
+        return capability === PermissionLevel.APPROVAL_ONLY || 
+               capability === PermissionLevel.SCORING_ONLY ||
+               capability === PermissionLevel.SUBMITTER;
+      }
+      
+      // APPROVAL_ONLY and SCORING_ONLY users can also submit (SUBMITTER is default for all)
+      if ((userPermissionLevel === PermissionLevel.APPROVAL_ONLY || 
+           userPermissionLevel === PermissionLevel.SCORING_ONLY) &&
+          capability === PermissionLevel.SUBMITTER) {
+        return true;
+      }
+      
+      return false;
+    };
+
     // Filter menu items based on permissionLevel
     return allMenuItems.filter(item => {
       // Always show Dashboard and Settings (public items)
@@ -94,9 +124,9 @@ function SidebarContent() {
         return true;
       }
 
-      // If menu item has permissionLevels requirement, check if user's permissionLevel is included
+      // If menu item has permissionLevels requirement, check if user has any of the required capabilities
       if (item.permissionLevels) {
-        return item.permissionLevels.includes(userPermissionLevel);
+        return item.permissionLevels.some(level => hasCapability(level));
       }
 
       // If menu item has no permissionLevels requirement, it's public (already handled above)
@@ -168,7 +198,7 @@ export default function Sidebar() {
             <Button
               variant="ghost"
               size="icon"
-              className="fixed top-4 left-4 z-40 h-9 w-9 hover:bg-slate-100 dark:hover:bg-slate-800"
+              className="fixed top-4 left-4 z-40 h-9 w-9 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
             >
               <Menu className="h-5 w-5" />
             </Button>

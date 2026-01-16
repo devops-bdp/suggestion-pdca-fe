@@ -372,7 +372,7 @@ export default function Navbar() {
           <Button
             variant="ghost"
             size="icon"
-            className="relative h-9 w-9 hover:bg-slate-100 dark:hover:bg-slate-800"
+            className="relative h-9 w-9 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
           >
             <Bell className="h-5 w-5" />
             <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
@@ -381,7 +381,7 @@ export default function Navbar() {
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
-                className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
               >
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={user?.avatar || "/img/profile.png"} />
@@ -553,7 +553,7 @@ export default function Navbar() {
               variant="ghost"
               size="icon"
               onClick={() => setIsSearchActive(true)}
-              className="h-9 w-9 hover:bg-slate-100 dark:hover:bg-slate-800"
+              className="h-9 w-9 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
             >
               <Search className="h-5 w-5" />
             </Button>
@@ -562,7 +562,7 @@ export default function Navbar() {
             <Button
               variant="ghost"
               size="icon"
-              className="relative h-9 w-9 hover:bg-slate-100 dark:hover:bg-slate-800"
+              className="relative h-9 w-9 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
             >
               <Bell className="h-5 w-5" />
               <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
@@ -573,7 +573,7 @@ export default function Navbar() {
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
-                  className="flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                  className="flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
                 >
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={user?.avatar || "/img/profile.png"} />
@@ -627,7 +627,7 @@ export default function Navbar() {
               setSearchQuery("");
               setShowSearchResults(false);
             }}
-            className="h-9 w-9 hover:bg-slate-100 dark:hover:bg-slate-800 shrink-0"
+            className="h-9 w-9 hover:bg-slate-100 dark:hover:bg-slate-800 shrink-0 cursor-pointer"
           >
             <X className="h-5 w-5" />
           </Button>

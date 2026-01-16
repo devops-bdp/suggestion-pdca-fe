@@ -21,10 +21,11 @@ import {
   UserProfile,
 } from "@/types/api";
 import { formatEnumDisplay, canScore } from "@/types/utils";
-import { ClipboardCheck, Search, Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import { ClipboardCheck, Search, Clock, ChevronLeft, ChevronRight, FileSpreadsheet, FileText } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { SuggestionHistory } from "@/types/api";
 import { showSuccess, showError } from "@/lib/toast";
+import { exportSuggestionToExcel, exportSuggestionToPDF } from "@/lib/export-suggestion";
 
 // Kriteria Penilaian dengan deskripsi
 interface KriteriaPenilaian {
@@ -578,7 +579,7 @@ export default function ScoringPage() {
       {error && (
         <Card className="p-6 bg-red-50 dark:bg-red-950">
           <p className="text-red-600 dark:text-red-400 mb-4">{error.message}</p>
-          <Button onClick={refetch} variant="destructive">
+          <Button onClick={refetch} variant="destructive" className="cursor-pointer">
             Try Again
           </Button>
         </Card>
@@ -641,8 +642,8 @@ export default function ScoringPage() {
                     </div>
                     {suggestion.penilaian && suggestion.penilaian.length > 0 && (
                       <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
-                        <div className="flex items-center gap-4">
-                          <div>
+                        <div className="flex items-start gap-4">
+                          <div className="shrink-0">
                             <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
                               Total Score:
                             </p>
@@ -896,7 +897,7 @@ export default function ScoringPage() {
                   {selectedSuggestion.noRegistSS && (
                     <div>
                       <Label className="text-xs text-slate-500 dark:text-slate-400">No. Regist SS</Label>
-                      <p className="mt-0.5 md:mt-1 text-xs md:text-sm font-medium text-slate-600 dark:text-slate-400">
+                      <p className="mt-0.5 md:mt-1 text-xs md:text-sm font-medium text-slate-900 dark:text-slate-100">
                         {selectedSuggestion.noRegistSS}
                       </p>
                     </div>
@@ -982,6 +983,41 @@ export default function ScoringPage() {
                     </p>
                   </div>
                 )}
+                {/* Foto Sebelum & Sesudah */}
+                {(selectedSuggestion.fotoSebelum || selectedSuggestion.fotoSesudah) && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                    {selectedSuggestion.fotoSebelum && (
+                      <div>
+                        <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Foto Sebelum</Label>
+                        <div className="mt-1">
+                          <img 
+                            src={selectedSuggestion.fotoSebelum} 
+                            alt="Foto Sebelum" 
+                            className="w-full h-auto rounded-md border border-slate-200 dark:border-slate-700"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                    {selectedSuggestion.fotoSesudah && (
+                      <div>
+                        <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Foto Sesudah</Label>
+                        <div className="mt-1">
+                          <img 
+                            src={selectedSuggestion.fotoSesudah} 
+                            alt="Foto Sesudah" 
+                            className="w-full h-auto rounded-md border border-slate-200 dark:border-slate-700"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Penilaian Section */}
@@ -1012,10 +1048,30 @@ export default function ScoringPage() {
               )}
             </div>
           )}
-          <DialogFooter className="px-3 md:px-6 py-2.5 md:py-4 border-t bg-slate-50 dark:bg-slate-900 sticky bottom-0">
-            <Button variant="outline" onClick={() => setIsViewDialogOpen(false)} className="w-full md:w-auto text-sm md:text-base cursor-pointer">
+          <DialogFooter className="px-3 md:px-6 py-2.5 md:py-4 border-t bg-slate-50 dark:bg-slate-900 sticky bottom-0 flex flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setIsViewDialogOpen(false)} className="w-full sm:w-auto text-sm md:text-base cursor-pointer">
               Close
             </Button>
+            {selectedSuggestion && (selectedSuggestion.statusIde === StatusIde.APPROVE || selectedSuggestion.statusIde === StatusIde.DINILAI) && (
+              <>
+                <Button 
+                  variant="outline" 
+                  onClick={() => exportSuggestionToExcel(selectedSuggestion)} 
+                  className="w-full sm:w-auto text-sm md:text-base cursor-pointer"
+                >
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  Export Excel
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => exportSuggestionToPDF(selectedSuggestion)} 
+                  className="w-full sm:w-auto text-sm md:text-base cursor-pointer"
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Export PDF
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

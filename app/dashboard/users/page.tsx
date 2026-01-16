@@ -64,7 +64,6 @@ export default function UsersPage() {
     }
   }, [currentUser, router]);
 
-
   const { mutate: createUser, loading: creating } = useMutation<UserFormData, User>("post");
   const { mutate: updateUser, loading: updating } = useMutation<UserFormData, User>("put");
   const { mutate: deleteUser, loading: deleting } = useMutation<{ id: string }, void>("delete");
@@ -138,7 +137,21 @@ export default function UsersPage() {
   }, [filters.role, filters.department, filters.position, filters.search]);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+
+  // Update selectedUser when users data is refetched and view dialog is open
+  useEffect(() => {
+    if (isViewDialogOpen && selectedUser && users && Array.isArray(users)) {
+      const updatedUser = users.find((u: User) => u.id === selectedUser.id);
+      if (updatedUser) {
+        setSelectedUser(updatedUser);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [users, isViewDialogOpen]);
+
   const [formData, setFormData] = useState<UserFormData>({
     firstName: "",
     lastName: "",
@@ -149,6 +162,9 @@ export default function UsersPage() {
     position: "",
     permissionLevel: "",
   });
+  // Internal state for multi-select permission levels
+  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
+  
   const resetForm = () => {
     setFormData({
       firstName: "",
@@ -160,20 +176,54 @@ export default function UsersPage() {
       position: "",
       permissionLevel: "",
     });
+    setSelectedPermissions([]);
     setEditingUser(null);
   };
 
   const handleOpenCreate = () => {
     resetForm();
+    setSelectedPermissions([]);
     setIsDialogOpen(true);
+  };
+
+  const handleOpenView = (user: User) => {
+    setSelectedUser(user);
+    setIsViewDialogOpen(true);
   };
 
   const handleOpenEdit = (user: User) => {
     setEditingUser(user);
-    // Auto-set permissionLevel to SUBMITTER for Staff and Non_Staff
-    const defaultPermissionLevel = (user.role === Role.Staff || user.role === Role.Non_Staff) 
-      ? PermissionLevel.SUBMITTER 
-      : (user.permissionLevel || "");
+    
+    // Parse permissionLevel to array for multi-select
+    let permissions: string[] = [];
+    if (user.role === Role.Super_Admin) {
+      // Super Admin always has FULL_ACCESS
+      permissions = [PermissionLevel.FULL_ACCESS];
+    } else if (user.role === Role.Staff || user.role === Role.Non_Staff) {
+      // Staff and Non_Staff always have SUBMITTER
+      permissions = [PermissionLevel.SUBMITTER];
+    } else if (user.permissionLevel) {
+      // Parse existing permissionLevel
+      if (user.permissionLevel === PermissionLevel.APPROVAL_SCORING) {
+        // Split APPROVAL_SCORING into APPROVAL_ONLY and SCORING_ONLY
+        // Also add SUBMITTER since it's the default permission
+        permissions = [PermissionLevel.SUBMITTER, PermissionLevel.APPROVAL_ONLY, PermissionLevel.SCORING_ONLY];
+      } else if (user.permissionLevel === PermissionLevel.APPROVAL_ONLY) {
+        // APPROVAL_ONLY means user can approve, and can also submit (default)
+        permissions = [PermissionLevel.SUBMITTER, PermissionLevel.APPROVAL_ONLY];
+      } else if (user.permissionLevel === PermissionLevel.SCORING_ONLY) {
+        // SCORING_ONLY means user can score, and can also submit (default)
+        permissions = [PermissionLevel.SUBMITTER, PermissionLevel.SCORING_ONLY];
+      } else if (user.permissionLevel === PermissionLevel.SUBMITTER) {
+        // Only SUBMITTER
+        permissions = [PermissionLevel.SUBMITTER];
+      } else {
+        permissions = [user.permissionLevel];
+      }
+    } else {
+      // If no permissionLevel, default to SUBMITTER
+      permissions = [PermissionLevel.SUBMITTER];
+    }
     
     setFormData({
       firstName: user.firstName,
@@ -183,14 +233,62 @@ export default function UsersPage() {
       role: user.role,
       department: user.department || "",
       position: user.position || "",
-      permissionLevel: defaultPermissionLevel,
+      permissionLevel: user.permissionLevel || "",
     });
+    setSelectedPermissions(permissions);
     setIsDialogOpen(true);
   };
 
   const handleCloseDialog = () => {
     setIsDialogOpen(false);
     resetForm();
+  };
+
+  // Convert selected permissions array to single permissionLevel string for backend
+  const convertPermissionsToBackendFormat = (permissions: string[], role: string): string => {
+    // Super Admin always has FULL_ACCESS
+    if (role === Role.Super_Admin) {
+      return PermissionLevel.FULL_ACCESS;
+    }
+    
+    // Staff and Non_Staff always have SUBMITTER
+    if (role === Role.Staff || role === Role.Non_Staff) {
+      return PermissionLevel.SUBMITTER;
+    }
+    
+    // Filter out SUBMITTER since it's the default permission for all users
+    const nonDefaultPermissions = permissions.filter(p => p !== PermissionLevel.SUBMITTER);
+    
+    // If no non-default permissions selected, return SUBMITTER
+    if (nonDefaultPermissions.length === 0) {
+      return PermissionLevel.SUBMITTER;
+    }
+    
+    // If FULL_ACCESS is selected, return it
+    if (permissions.includes(PermissionLevel.FULL_ACCESS)) {
+      return PermissionLevel.FULL_ACCESS;
+    }
+    
+    // If both APPROVAL_ONLY and SCORING_ONLY are selected (with or without SUBMITTER), return APPROVAL_SCORING
+    if (permissions.includes(PermissionLevel.APPROVAL_ONLY) && permissions.includes(PermissionLevel.SCORING_ONLY)) {
+      return PermissionLevel.APPROVAL_SCORING;
+    }
+    
+    // If only one non-default permission is selected, return it
+    if (nonDefaultPermissions.length === 1) {
+      return nonDefaultPermissions[0];
+    }
+    
+    // If multiple non-default permissions, prioritize
+    if (nonDefaultPermissions.includes(PermissionLevel.APPROVAL_ONLY)) {
+      return PermissionLevel.APPROVAL_ONLY;
+    }
+    if (nonDefaultPermissions.includes(PermissionLevel.SCORING_ONLY)) {
+      return PermissionLevel.SCORING_ONLY;
+    }
+    
+    // Default fallback
+    return PermissionLevel.SUBMITTER;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -213,14 +311,12 @@ export default function UsersPage() {
         if (formData.position && formData.position.trim()) {
           payload.position = formData.position;
         }
-        // Auto-set permissionLevel based on role
-        // Staff and Non_Staff always get SUBMITTER
-        if (formData.role === Role.Staff || formData.role === Role.Non_Staff) {
-          payload.permissionLevel = PermissionLevel.SUBMITTER;
-        } else if (formData.permissionLevel && formData.permissionLevel.trim()) {
-          // For other roles, use the selected permissionLevel
-          payload.permissionLevel = formData.permissionLevel.trim();
-        }
+        
+        // Convert multi-select permissions to backend format
+        // Always include permissionLevel in payload for updates
+        const backendPermissionLevel = convertPermissionsToBackendFormat(selectedPermissions, formData.role);
+        payload.permissionLevel = backendPermissionLevel;
+        
         // Only include password if it's provided (for update)
         if (formData.password && formData.password.trim()) {
           payload.password = formData.password;
@@ -229,13 +325,19 @@ export default function UsersPage() {
         const response = await updateUser(`/users/${editingUser.id}`, payload);
         
         // Update editingUser with the response data if available
+        let updatedUserData: User | null = null;
         if (response && typeof response === 'object' && 'data' in response) {
-          const updatedUserData = response.data as User;
+          updatedUserData = response.data as User;
           // Update the editingUser state with the new data
           setEditingUser({
             ...editingUser,
             ...updatedUserData,
           });
+          
+          // Update selectedUser if view dialog is open and showing the same user
+          if (isViewDialogOpen && selectedUser && selectedUser.id === editingUser.id) {
+            setSelectedUser(updatedUserData);
+          }
         }
         
         showSuccess(`User ${formData.firstName} ${formData.lastName} updated successfully!`);
@@ -262,12 +364,10 @@ export default function UsersPage() {
         if (formData.position && formData.position.trim()) {
           payload.position = formData.position;
         }
-        // Auto-set permissionLevel to SUBMITTER for Staff and Non_Staff
-        if (formData.role === Role.Staff || formData.role === Role.Non_Staff) {
-          payload.permissionLevel = PermissionLevel.SUBMITTER;
-        } else if (formData.permissionLevel && formData.permissionLevel.trim()) {
-          payload.permissionLevel = formData.permissionLevel;
-        }
+        
+        // Convert multi-select permissions to backend format
+        const backendPermissionLevel = convertPermissionsToBackendFormat(selectedPermissions, formData.role);
+        payload.permissionLevel = backendPermissionLevel;
 
         await createUser("/auth/register", payload);
         showSuccess(`User ${formData.firstName} ${formData.lastName} created successfully!`);
@@ -565,7 +665,8 @@ export default function UsersPage() {
                   {paginatedUsers.map((user) => (
                   <tr
                     key={user.id}
-                    className="hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+                    className="hover:bg-slate-50 dark:hover:bg-slate-800 transition cursor-pointer"
+                    onClick={() => handleOpenView(user)}
                   >
                     <td className="px-6 py-4 text-sm text-slate-900 dark:text-slate-100">
                       {user.firstName} {user.lastName}
@@ -588,7 +689,10 @@ export default function UsersPage() {
                       {new Date(user.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 text-sm">
-                      <div className="flex items-center gap-2">
+                      <div 
+                        className="flex items-center gap-2"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <Button
                           variant="ghost"
                           size="icon"
@@ -697,6 +801,148 @@ export default function UsersPage() {
         </Card>
       )}
 
+      {/* View User Details Dialog */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[95vh] overflow-y-auto p-0 rounded-xl border-2 border-slate-200 dark:border-slate-700 shadow-2xl">
+          <DialogHeader className="px-3 md:px-6 pt-3 md:pt-6 pb-2 md:pb-4 border-b sticky top-0 bg-white dark:bg-slate-900 z-10">
+            <div className="flex flex-col gap-2 md:gap-4">
+              <DialogTitle className="text-base md:text-xl truncate">
+                {selectedUser ? `${selectedUser.firstName} ${selectedUser.lastName}` : "User Details"}
+              </DialogTitle>
+              <DialogDescription className="text-xs md:text-sm">View complete user information</DialogDescription>
+            </div>
+          </DialogHeader>
+          {selectedUser && (
+            <div className="px-3 md:px-6 py-2.5 md:py-4 space-y-2.5 md:space-y-3">
+              {/* User Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 pb-2 md:pb-3 border-b">
+                <div className="space-y-2 md:space-y-3">
+                  <div>
+                    <Label className="text-xs text-slate-500 dark:text-slate-400">Name</Label>
+                    <p className="mt-0.5 md:mt-1 text-xs md:text-sm font-medium text-slate-900 dark:text-slate-100">
+                      {selectedUser.firstName} {selectedUser.lastName}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-slate-500 dark:text-slate-400">NRP</Label>
+                    <p className="mt-0.5 md:mt-1 text-xs md:text-sm font-medium text-slate-900 dark:text-slate-100">
+                      {selectedUser.nrp}
+                    </p>
+                  </div>
+                  {(selectedUser as UserProfile).email && (
+                    <div>
+                      <Label className="text-xs text-slate-500 dark:text-slate-400">Email</Label>
+                      <p className="mt-0.5 md:mt-1 text-xs md:text-sm font-medium text-slate-900 dark:text-slate-100">
+                        {(selectedUser as UserProfile).email}
+                      </p>
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-2 md:space-y-3">
+                  <div>
+                    <Label className="text-xs text-slate-500 dark:text-slate-400">Role</Label>
+                    <div className="mt-0.5 md:mt-1">
+                      <span className="inline-flex items-center px-2 md:px-3 py-0.5 md:py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
+                        {formatEnumDisplay(selectedUser.role)}
+                      </span>
+                    </div>
+                  </div>
+                  {selectedUser.department && (
+                    <div>
+                      <Label className="text-xs text-slate-500 dark:text-slate-400">Department</Label>
+                      <p className="mt-0.5 md:mt-1 text-xs md:text-sm font-medium text-slate-900 dark:text-slate-100">
+                        {formatEnumDisplay(selectedUser.department)}
+                      </p>
+                    </div>
+                  )}
+                  {selectedUser.position && (
+                    <div>
+                      <Label className="text-xs text-slate-500 dark:text-slate-400">Position</Label>
+                      <p className="mt-0.5 md:mt-1 text-xs md:text-sm font-medium text-slate-900 dark:text-slate-100">
+                        {formatEnumDisplay(selectedUser.position)}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Additional Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 pt-2 md:pt-3 border-t">
+                <div>
+                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Permission Level</Label>
+                  <div className="mt-1 space-y-1">
+                    {selectedUser.permissionLevel ? (() => {
+                      const permissionLevel = selectedUser.permissionLevel as PermissionLevel;
+                      const capabilities: string[] = [];
+                      
+                      // Parse capabilities based on permission level
+                      if (permissionLevel === PermissionLevel.FULL_ACCESS) {
+                        capabilities.push(PermissionLevel.FULL_ACCESS);
+                      } else if (permissionLevel === PermissionLevel.APPROVAL_SCORING) {
+                        // APPROVAL_SCORING means user has APPROVAL_ONLY, SCORING_ONLY, and SUBMITTER capabilities
+                        capabilities.push(PermissionLevel.SUBMITTER, PermissionLevel.APPROVAL_ONLY, PermissionLevel.SCORING_ONLY);
+                      } else if (permissionLevel === PermissionLevel.APPROVAL_ONLY) {
+                        // APPROVAL_ONLY users can also submit (SUBMITTER is default)
+                        capabilities.push(PermissionLevel.SUBMITTER, PermissionLevel.APPROVAL_ONLY);
+                      } else if (permissionLevel === PermissionLevel.SCORING_ONLY) {
+                        // SCORING_ONLY users can also submit (SUBMITTER is default)
+                        capabilities.push(PermissionLevel.SUBMITTER, PermissionLevel.SCORING_ONLY);
+                      } else if (permissionLevel === PermissionLevel.SUBMITTER) {
+                        capabilities.push(PermissionLevel.SUBMITTER);
+                      }
+                      
+                      return (
+                        <div className="flex flex-wrap gap-2">
+                          {capabilities.map((capability, index) => (
+                            <span
+                              key={capability}
+                              className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200"
+                            >
+                              {formatEnumDisplay(capability)}
+                            </span>
+                          ))}
+                        </div>
+                      );
+                    })() : (
+                      <p className="text-xs md:text-sm text-slate-900 dark:text-slate-100">-</p>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Member Since</Label>
+                  <p className="mt-1 text-xs md:text-sm text-slate-900 dark:text-slate-100">
+                    {new Date(selectedUser.createdAt).toLocaleDateString('id-ID', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter className="px-3 md:px-6 py-2.5 md:py-4 border-t bg-slate-50 dark:bg-slate-900 sticky bottom-0">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsViewDialogOpen(false)} 
+              className="w-full md:w-auto text-sm md:text-base cursor-pointer"
+            >
+              Close
+            </Button>
+            <Button 
+              variant="default" 
+              onClick={() => {
+                setIsViewDialogOpen(false);
+                handleOpenEdit(selectedUser!);
+              }}
+              className="w-full md:w-auto text-sm md:text-base cursor-pointer"
+            >
+              Edit User
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -789,9 +1035,20 @@ export default function UsersPage() {
                   <select
                     id="role"
                     value={formData.role}
-                    onChange={(e) =>
-                      setFormData({ ...formData, role: e.target.value })
+                    onChange={(e) => {
+                      const newRole = e.target.value;
+                      setFormData({ ...formData, role: newRole });
+                      
+                      // Auto-set permissions based on role
+                      if (newRole === Role.Super_Admin) {
+                        setSelectedPermissions([PermissionLevel.FULL_ACCESS]);
+                      } else if (newRole === Role.Staff || newRole === Role.Non_Staff) {
+                        setSelectedPermissions([PermissionLevel.SUBMITTER]);
+                      } else {
+                        // Clear permissions for other roles, let user select
+                        setSelectedPermissions([]);
                     }
+                    }}
                     className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                     required
                   >
@@ -806,25 +1063,67 @@ export default function UsersPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="permissionLevel">Permission Level</Label>
-                  <select
-                    id="permissionLevel"
-                    value={formData.permissionLevel || ""}
-                    onChange={(e) =>
-                      setFormData({ ...formData, permissionLevel: e.target.value })
-                    }
-                    disabled={formData.role === Role.Staff || formData.role === Role.Non_Staff}
-                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <option value="">-- Select Permission Level --</option>
-                    {permissionLevelOptions.map((level) => (
-                      <option key={level} value={level}>
-                        {formatEnumDisplay(level)}
-                      </option>
-                    ))}
-                  </select>
+                  {formData.role === Role.Super_Admin ? (
+                    // Super Admin always has FULL_ACCESS - show as disabled
+                    <div className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm items-center text-muted-foreground">
+                      {formatEnumDisplay(PermissionLevel.FULL_ACCESS)}
+                    </div>
+                  ) : formData.role === Role.Staff || formData.role === Role.Non_Staff ? (
+                    // Staff and Non_Staff always have SUBMITTER - show as disabled
+                    <div className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm items-center text-muted-foreground">
+                      {formatEnumDisplay(PermissionLevel.SUBMITTER)}
+                    </div>
+                  ) : (
+                    // Multi-select checkboxes for other roles
+                    <div className="space-y-2 p-3 border border-input rounded-md bg-background">
+                      {[
+                        PermissionLevel.SUBMITTER,
+                        PermissionLevel.APPROVAL_ONLY,
+                        PermissionLevel.SCORING_ONLY,
+                      ].map((level) => (
+                        <label
+                          key={level}
+                          className="flex items-center space-x-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 p-2 rounded"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedPermissions.includes(level)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedPermissions([...selectedPermissions, level]);
+                              } else {
+                                setSelectedPermissions(selectedPermissions.filter((p) => p !== level));
+                              }
+                            }}
+                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className="text-sm">{formatEnumDisplay(level)}</span>
+                        </label>
+                      ))}
+                      {selectedPermissions.includes(PermissionLevel.APPROVAL_ONLY) &&
+                        selectedPermissions.includes(PermissionLevel.SCORING_ONLY) && (
+                          <p className="text-xs text-muted-foreground mt-2">
+                            Selected: {formatEnumDisplay(PermissionLevel.APPROVAL_ONLY)} + {formatEnumDisplay(PermissionLevel.SCORING_ONLY)}
+                          </p>
+                        )}
+                    </div>
+                  )}
+                  {formData.role === Role.Super_Admin && (
+                    <p className="text-xs text-muted-foreground">
+                      Super Admin always has FULL_ACCESS permission level
+                    </p>
+                  )}
                   {(formData.role === Role.Staff || formData.role === Role.Non_Staff) && (
                     <p className="text-xs text-muted-foreground">
                       Staff and Non_Staff always have SUBMITTER permission level
+                    </p>
+                  )}
+                  {formData.role &&
+                    formData.role !== Role.Super_Admin &&
+                    formData.role !== Role.Staff &&
+                    formData.role !== Role.Non_Staff && (
+                      <p className="text-xs text-muted-foreground">
+                        You can select multiple permissions. Selecting both Approval and Scoring will combine them.
                     </p>
                   )}
                 </div>
